@@ -6,11 +6,13 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Joel Verhagen</Authors>
     <Version>0.0.1</Version>
-    <PackageLicenseUrl>https://github.com/joelverhagen/BlobDelta/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/joelverhagen/BlobDelta</PackageProjectUrl>
     <RepositoryUrl>https://github.com/joelverhagen/BlobDelta</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>compare diff delta blob azure storage container hash content md5 missing extra</PackageTags>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
 
   <ItemGroup>
