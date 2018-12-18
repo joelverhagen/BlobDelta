@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -64,12 +66,32 @@ namespace Knapcode.BlobDelta.Test.Functional
             await Task.WhenAll(tasks);
         }
 
+        public async Task CreateAppendBlobAsync(CloudBlobContainer container, string name, string content = "")
+        {
+            Output.WriteLine($"Creating append blob {name}...");
+            var sw = Stopwatch.StartNew();
+            await container.GetAppendBlobReference(name).UploadTextAsync(content);
+            Output.WriteLine($"Done creating append blob {name} in {sw.Elapsed}.");
+        }
+
+        public async Task CreateBlockBlobAsyncWithoutContentMD5(CloudBlobContainer container, string name, string content = "")
+        {
+            Output.WriteLine($"Creating block blob {name} without Content-MD5...");
+            var sw = Stopwatch.StartNew();
+            await container.GetBlockBlobReference(name).UploadFromStreamAsync(
+                new NonSeekableMemoryStream(Encoding.UTF8.GetBytes(content)),
+                accessCondition: null,
+                options: new BlobRequestOptions { StoreBlobContentMD5 = false },
+                operationContext: null);
+            Output.WriteLine($"Done creating block blob {name} without Content-MD5 in {sw.Elapsed}.");
+        }
+
         public async Task CreateBlockBlobAsync(CloudBlobContainer container, string name, string content = "")
         {
-            Output.WriteLine($"Creating blob {name}..."); ;
+            Output.WriteLine($"Creating block blob {name}...");
             var sw = Stopwatch.StartNew();
             await container.GetBlockBlobReference(name).UploadTextAsync(content);
-            Output.WriteLine($"Done creating blob {name} in {sw.Elapsed}.");
+            Output.WriteLine($"Done creating block blob {name} in {sw.Elapsed}.");
         }
 
         public async Task DisposeAsync(CloudBlobContainer container)
@@ -86,6 +108,23 @@ namespace Knapcode.BlobDelta.Test.Functional
             var sw = Stopwatch.StartNew();
             await container.CreateIfNotExistsAsync();
             Output.WriteLine($"Done creating blob container {container.Name} in {sw.Elapsed}.");
+        }
+
+        private class NonSeekableMemoryStream : MemoryStream
+        {
+            public NonSeekableMemoryStream() : base()
+            {
+            }
+
+            public NonSeekableMemoryStream(byte[] buffer): base(buffer)
+            {
+            }
+
+            public override bool CanSeek => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position => throw new NotSupportedException();
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
         }
     }
 }
