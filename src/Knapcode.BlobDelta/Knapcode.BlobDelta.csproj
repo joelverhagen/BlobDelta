@@ -10,6 +10,7 @@
     <PackageProjectUrl>https://github.com/joelverhagen/BlobDelta</PackageProjectUrl>
     <RepositoryUrl>https://github.com/joelverhagen/BlobDelta</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <Description>Find the difference between two sequences of blobs on Azure Blob Storage</Description>
     <PackageTags>compare diff delta blob azure storage container hash content md5 missing extra</PackageTags>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <IncludeSymbols>true</IncludeSymbols>
