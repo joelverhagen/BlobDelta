@@ -1,17 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.WindowsAzure.Storage.Blob;
 
-namespace Knapcode.BlobDelta.Sample
+namespace Knapcode.BlobDelta
 {
-    public class Node
+    public class PrefixNode
     {
-        private readonly List<Node> _children;
+        private readonly List<PrefixNode> _children;
 
-        public Node(Node parent, string partialPrefix)
+        public PrefixNode(PrefixNode parent, string partialPrefix, BlobContinuationToken token)
         {
             Parent = parent;
             PartialPrefix = partialPrefix ?? throw new ArgumentNullException(nameof(partialPrefix));
-            _children = new List<Node>();
+            Token = token;
+            _children = new List<PrefixNode>();
 
             if (Parent == null)
             {
@@ -23,17 +25,18 @@ namespace Knapcode.BlobDelta.Sample
             }
         }
 
-        public Node Parent { get; }
+        public PrefixNode Parent { get; }
         public string PartialPrefix { get; }
+        public BlobContinuationToken Token { get; }
         public string Prefix { get; }
-        public IReadOnlyList<Node> Children => _children;
+        public IReadOnlyList<PrefixNode> Children => _children;
 
         public override string ToString()
         {
             return Prefix;
         }
 
-        public Node GetOrAddChild(string partialPrefix)
+        public PrefixNode GetOrAddChild(string partialPrefix, BlobContinuationToken token)
         {
             foreach (var existingChild in _children)
             {
@@ -53,7 +56,7 @@ namespace Knapcode.BlobDelta.Sample
                 }
             }
 
-            var newChild = new Node(this, partialPrefix);
+            var newChild = new PrefixNode(this, partialPrefix, token);
             _children.Add(newChild);
             return newChild;
         }
