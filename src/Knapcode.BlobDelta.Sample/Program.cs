@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Auth;
 using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Knapcode.BlobDelta.Sample
@@ -15,23 +14,6 @@ namespace Knapcode.BlobDelta.Sample
         }
 
         private static async Task MainAsync()
-        {
-            var accountName = "explorepackages";
-            var sasToken = "";
-            var containerName = "packages2";
-            //var accountName = "blobdelta";
-            //var sasToken = "";
-            //var containerName = "test";
-            var account = new CloudStorageAccount(
-                new StorageCredentials(sasToken),
-                accountName,
-                "core.windows.net",
-                useHttps: true);
-
-            await account.CreateCloudBlobClient().GetContainerReference(containerName).ExistsAsync();
-
-        }
-        private static async Task CompareAsync()
         {
             var containerLeft = GetContainer("packages");
             var containerRight = GetContainer("packages2");
