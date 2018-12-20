@@ -254,14 +254,14 @@ namespace Knapcode.BlobDelta.Test.Functional
                 int rightPageSize = 5000)
             {
                 return new BlobComparisonEnumerable(
-                    new BlobContainerEnumerable(
+                    new BlobEnumerable(
                         LeftContainer,
                         leftInitialContinuationToken,
                         leftMinBlobName,
                         leftMaxBlobName,
                         leftPrefix,
                         leftPageSize),
-                    new BlobContainerEnumerable(
+                    new BlobEnumerable(
                         RightContainer,
                         rightInitialContinuationToken,
                         rightMinBlobName,

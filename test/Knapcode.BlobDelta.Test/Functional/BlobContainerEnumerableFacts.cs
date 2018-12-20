@@ -47,6 +47,51 @@ namespace Knapcode.BlobDelta.Test.Functional
             }
         }
 
+        public class ContextHasCorrectProperties : Test
+        {
+            public ContextHasCorrectProperties(ITestOutputHelper output) : base(output)
+            {
+            }
+
+            [Fact]
+            public async Task Run()
+            {
+                var names = new[] { "a", "b", "c", "d", "e" };
+                await CreateBlockBlobsAsync(names);
+                var target = Create(pageSize: 2);
+
+                var output = await target.ToListAsync();
+
+                Assert.Equal(5, output.Count);
+
+                Assert.Equal("a", output[0].Blob.Name);
+                Assert.Equal(0, output[0].BlobIndex);
+                Assert.Null(output[0].ContinuationToken);
+                Assert.Equal(0, output[0].SegmentIndex);
+
+                Assert.Equal("b", output[1].Blob.Name);
+                Assert.Equal(1, output[1].BlobIndex);
+                Assert.Null(output[1].ContinuationToken);
+                Assert.Equal(0, output[1].SegmentIndex);
+
+                Assert.Equal("c", output[2].Blob.Name);
+                Assert.Equal(0, output[2].BlobIndex);
+                Assert.NotNull(output[2].ContinuationToken);
+                Assert.Equal(1, output[2].SegmentIndex);
+
+                Assert.Equal("d", output[3].Blob.Name);
+                Assert.Equal(1, output[3].BlobIndex);
+                Assert.Equal(output[2].ContinuationToken, output[3].ContinuationToken);
+                Assert.Equal(1, output[3].SegmentIndex);
+
+                Assert.Equal("e", output[4].Blob.Name);
+                Assert.Equal(0, output[4].BlobIndex);
+                Assert.NotNull(output[4].ContinuationToken);
+                Assert.NotEqual(output[3].ContinuationToken, output[4].ContinuationToken);
+                Assert.Equal(2, output[4].SegmentIndex);
+            }
+        }
+
         public class ObservesMinBound : Test
         {
             public ObservesMinBound(ITestOutputHelper output) : base(output)
@@ -205,14 +250,14 @@ namespace Knapcode.BlobDelta.Test.Functional
             public string ContainerName { get; }
             public CloudBlobContainer Container { get; }
 
-            public BlobContainerEnumerable Create(
+            public BlobEnumerable Create(
                 BlobContinuationToken initialContinuationToken = null,
                 string minBlobName = null,
                 string maxBlobName = null,
                 string prefix = null,
                 int pageSize = 5000)
             {
-                return new BlobContainerEnumerable(
+                return new BlobEnumerable(
                     Container,
                     initialContinuationToken,
                     minBlobName,

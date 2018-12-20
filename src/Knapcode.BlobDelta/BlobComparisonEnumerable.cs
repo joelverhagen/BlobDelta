@@ -3,20 +3,20 @@ using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Knapcode.BlobDelta
 {
-    public class BlobComparisonEnumerable : ComparisonEnumerable<BlobAndContinuationToken, BlobAndContinuationToken, BlobComparison>
+    public class BlobComparisonEnumerable : ComparisonEnumerable<BlobContext, BlobContext, BlobComparison>
     {
-        private readonly IAsyncEnumerable<BlobAndContinuationToken> _left;
-        private readonly IAsyncEnumerable<BlobAndContinuationToken> _right;
+        private readonly IAsyncEnumerable<BlobContext> _left;
+        private readonly IAsyncEnumerable<BlobContext> _right;
 
         public BlobComparisonEnumerable(
-            IAsyncEnumerable<BlobAndContinuationToken> left,
-            IAsyncEnumerable<BlobAndContinuationToken> right) : base(left, right)
+            IAsyncEnumerable<BlobContext> left,
+            IAsyncEnumerable<BlobContext> right) : base(left, right)
         {
             _left = left ?? throw new ArgumentNullException(nameof(left));
             _right = right ?? throw new ArgumentNullException(nameof(right));
         }
 
-        protected override BlobComparison Compare(BlobAndContinuationToken left, BlobAndContinuationToken right)
+        protected override BlobComparison Compare(BlobContext left, BlobContext right)
         {
             var leftComparable = GetLeftComparableBlobOrNull(left);
             var rightComparable = GetRightComparableBlobOrNull(right);
@@ -34,12 +34,12 @@ namespace Knapcode.BlobDelta
             return new BlobComparison(type, left, right);
         }
 
-        protected virtual IComparableBlob GetLeftComparableBlobOrNull(BlobAndContinuationToken left)
+        protected virtual IComparableBlob GetLeftComparableBlobOrNull(BlobContext left)
         {
             return ComparableBlob.CreateOrNull(left);
         }
 
-        protected virtual IComparableBlob GetRightComparableBlobOrNull(BlobAndContinuationToken right)
+        protected virtual IComparableBlob GetRightComparableBlobOrNull(BlobContext right)
         {
             return ComparableBlob.CreateOrNull(right);
         }

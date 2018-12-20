@@ -32,7 +32,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             }
         }
 
-        public static string[] GetBlobNames(this IEnumerable<BlobAndContinuationToken> output)
+        public static string[] GetBlobNames(this IEnumerable<BlobContext> output)
         {
             return output.Select(x => x.Blob.Name).ToArray();
         }

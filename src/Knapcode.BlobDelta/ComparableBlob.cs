@@ -5,26 +5,26 @@ namespace Knapcode.BlobDelta
 {
     public class ComparableBlob : IComparableBlob
     {
-        private readonly ICloudBlob _blob;
-
         private ComparableBlob(ICloudBlob blob)
         {
-            _blob = blob ?? throw new ArgumentNullException(nameof(blob));
+            Blob = blob ?? throw new ArgumentNullException(nameof(blob));
         }
 
-        public string Name => _blob.Name;
-        public Type BlobType => _blob.GetType();
-        public long Length => _blob.Properties.Length;
-        public string ContentMD5 => _blob.Properties.ContentMD5;
+        protected ICloudBlob Blob { get; }
 
-        public static ComparableBlob CreateOrNull(BlobAndContinuationToken blobAndContinuationToken)
+        public virtual string Name => Blob.Name;
+        public virtual Type BlobType => Blob.GetType();
+        public virtual long Length => Blob.Properties.Length;
+        public virtual string ContentMD5 => Blob.Properties.ContentMD5;
+
+        public static ComparableBlob CreateOrNull(BlobContext blobContext)
         {
-            if (blobAndContinuationToken == null)
+            if (blobContext == null)
             {
                 return null;
             }
 
-            return new ComparableBlob(blobAndContinuationToken.Blob);
+            return new ComparableBlob(blobContext.Blob);
         }
     }
 }

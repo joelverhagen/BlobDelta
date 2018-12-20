@@ -12,8 +12,8 @@ namespace Knapcode.BlobDelta
 
         public BlobComparison(
             BlobComparisonType type,
-            BlobAndContinuationToken left,
-            BlobAndContinuationToken right)
+            BlobContext left,
+            BlobContext right)
         {
             if (!ValidTypes.Contains(type))
             {
@@ -31,8 +31,8 @@ namespace Knapcode.BlobDelta
         }
 
         public BlobComparisonType Type { get; }
-        public BlobAndContinuationToken Left { get; }
-        public BlobAndContinuationToken Right { get; }
+        public BlobContext Left { get; }
+        public BlobContext Right { get; }
         public bool IsMissingFromLeft => Type == BlobComparisonType.MissingFromLeft;
         public bool IsMissingFromRight => Type == BlobComparisonType.MissingFromRight;
     }

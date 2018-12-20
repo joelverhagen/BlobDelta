@@ -5,7 +5,7 @@ using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Knapcode.BlobDelta
 {
-    public class BlobContainerEnumerable : IAsyncEnumerable<BlobAndContinuationToken>
+    public class BlobEnumerable : IAsyncEnumerable<BlobContext>
     {
         private const int MaxPageSize = 5000;
 
@@ -20,7 +20,7 @@ namespace Knapcode.BlobDelta
         /// Initializes an enumerable that asynchronously enumerates over a blob storage container.
         /// </summary>
         /// <param name="container">The blob storage container to enumerate over.</param>
-        public BlobContainerEnumerable(CloudBlobContainer container) : this(
+        public BlobEnumerable(CloudBlobContainer container) : this(
             container,
             initialContinuationToken: null,
             minBlobName: null,
@@ -41,7 +41,7 @@ namespace Knapcode.BlobDelta
         /// <param name="pageSize">
         /// The page size to use. Must be greater or equal to 0 and less than or equal to 5000.
         /// </param>
-        public BlobContainerEnumerable(
+        public BlobEnumerable(
             CloudBlobContainer container,
             BlobContinuationToken initialContinuationToken,
             string minBlobName,
@@ -63,9 +63,9 @@ namespace Knapcode.BlobDelta
             _pageSize = actualPageSize;
         }
 
-        public IAsyncEnumerator<BlobAndContinuationToken> GetEnumerator()
+        public IAsyncEnumerator<BlobContext> GetEnumerator()
         {
-            return new BlobContainerEnumerator(
+            return new BlobEnumerator(
                 _container,
                 _initialContinuationToken,
                 _minBlobName,
@@ -74,7 +74,7 @@ namespace Knapcode.BlobDelta
                 _pageSize);
         }
 
-        private class BlobContainerEnumerator : IAsyncEnumerator<BlobAndContinuationToken>
+        private class BlobEnumerator : IAsyncEnumerator<BlobContext>
         {
             private readonly CloudBlobContainer _container;
             private readonly string _prefix;
@@ -86,8 +86,10 @@ namespace Knapcode.BlobDelta
             private IEnumerator<IListBlobItem> _currentEnumerator;
             private bool _complete;
             private ICloudBlob _currentBlob;
+            private int _currentSegmentIndex = -1;
+            private int _currentBlobIndex;
 
-            public BlobContainerEnumerator(
+            public BlobEnumerator(
                 CloudBlobContainer container,
                 BlobContinuationToken initialContinuationToken,
                 string minBlobName,
@@ -103,18 +105,7 @@ namespace Knapcode.BlobDelta
                 _pageSize = pageSize;
             }
 
-            public BlobAndContinuationToken Current
-            {
-                get
-                {
-                    if (_currentBlob == null)
-                    {
-                        return null;
-                    }
-
-                    return new BlobAndContinuationToken(_currentBlob, _currentContinuationToken);
-                }
-            }
+            public BlobContext Current { get; private set; }
 
             public async Task<bool> MoveNextAsync()
             {
@@ -162,9 +153,12 @@ namespace Knapcode.BlobDelta
                             options: null,
                             operationContext: null);
                         _currentEnumerator = _currentSegment.Results.GetEnumerator();
+                        _currentSegmentIndex++;
+                        _currentBlobIndex = -1;
                     }
 
                     hasCurrent = _currentEnumerator.MoveNext();
+                    _currentBlobIndex++;
                     isDoneWithSegment = !hasCurrent;
 
                     // If we're done with the segment and this segment is the last segment, mark the enumerater as
@@ -172,6 +166,7 @@ namespace Knapcode.BlobDelta
                     if (isDoneWithSegment && _currentSegment.ContinuationToken == null)
                     {
                         _complete = true;
+                        Current = null;
                         return false;
                     }
                 }
@@ -183,8 +178,15 @@ namespace Knapcode.BlobDelta
                 if (_maxBlobName != null && _currentBlob.Name.CompareTo(_maxBlobName) >= 0)
                 {
                     _complete = true;
+                    Current = null;
                     return false;
                 }
+
+                Current = new BlobContext(
+                    _currentBlob,
+                    _currentContinuationToken,
+                    _currentSegmentIndex,
+                    _currentBlobIndex);
 
                 return true;
             }

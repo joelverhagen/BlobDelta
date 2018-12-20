@@ -18,8 +18,8 @@ namespace Knapcode.BlobDelta.Sample
             var containerLeft = GetContainer("packages");
             var containerRight = GetContainer("packages2");
 
-            var enumerableLeft = new BlobContainerEnumerable(containerLeft);
-            var enumerableRight = new BlobContainerEnumerable(containerRight);
+            var enumerableLeft = new BlobEnumerable(containerLeft);
+            var enumerableRight = new BlobEnumerable(containerRight);
 
             Console.WriteLine($"Left  | {containerLeft.Uri}");
             Console.WriteLine($"Right | {containerRight.Uri}");
