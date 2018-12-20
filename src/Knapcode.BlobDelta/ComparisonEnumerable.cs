@@ -5,31 +5,30 @@ namespace Knapcode.BlobDelta
 {
     public delegate TComparison Compare<TLeft, TRight, TComparison>(TLeft left, TRight right);
 
-    public class ComparisonEnumerable<TLeft, TRight, TComparison> : IAsyncEnumerable<TComparison>
+    public abstract class ComparisonEnumerable<TLeft, TRight, TComparison> : IAsyncEnumerable<TComparison>
         where TLeft : class
         where TRight : class
         where TComparison : IComparison
     {
         private readonly IAsyncEnumerable<TLeft> _left;
         private readonly IAsyncEnumerable<TRight> _right;
-        private readonly Compare<TLeft, TRight, TComparison> _compare;
 
         public ComparisonEnumerable(
             IAsyncEnumerable<TLeft> left,
-            IAsyncEnumerable<TRight> right,
-            Compare<TLeft, TRight, TComparison> compare)
+            IAsyncEnumerable<TRight> right)
         {
             _left = left ?? throw new ArgumentNullException(nameof(left));
             _right = right ?? throw new ArgumentNullException(nameof(right));
-            _compare = compare ?? throw new ArgumentNullException(nameof(compare));
         }
+
+        protected abstract TComparison Compare(TLeft left, TRight right);
 
         public IAsyncEnumerator<TComparison> GetEnumerator()
         {
             return new ComparisonEnumerator(
                 _left.GetEnumerator(),
                 _right.GetEnumerator(),
-                _compare);
+                Compare);
         }
 
         private class ComparisonEnumerator : IAsyncEnumerator<TComparison>

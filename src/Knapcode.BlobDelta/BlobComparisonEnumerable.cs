@@ -10,13 +10,41 @@ namespace Knapcode.BlobDelta
 
         public BlobComparisonEnumerable(
             IAsyncEnumerable<BlobAndContinuationToken> left,
-            IAsyncEnumerable<BlobAndContinuationToken> right) : base(left, right, CompareBlobs)
+            IAsyncEnumerable<BlobAndContinuationToken> right) : base(left, right)
         {
             _left = left ?? throw new ArgumentNullException(nameof(left));
             _right = right ?? throw new ArgumentNullException(nameof(right));
         }
 
-        private static BlobComparison CompareBlobs(BlobAndContinuationToken left, BlobAndContinuationToken right)
+        protected override BlobComparison Compare(BlobAndContinuationToken left, BlobAndContinuationToken right)
+        {
+            var leftComparable = GetLeftComparableBlobOrNull(left);
+            var rightComparable = GetRightComparableBlobOrNull(right);
+            var type = Compare(leftComparable, rightComparable);
+
+            if (type == BlobComparisonType.MissingFromLeft)
+            {
+                left = null;
+            }
+            else if (type == BlobComparisonType.MissingFromRight)
+            {
+                right = null;
+            }
+
+            return new BlobComparison(type, left, right);
+        }
+
+        protected virtual IComparableBlob GetLeftComparableBlobOrNull(BlobAndContinuationToken left)
+        {
+            return ComparableBlob.CreateOrNull(left);
+        }
+
+        protected virtual IComparableBlob GetRightComparableBlobOrNull(BlobAndContinuationToken right)
+        {
+            return ComparableBlob.CreateOrNull(right);
+        }
+
+        protected virtual BlobComparisonType Compare(IComparableBlob left, IComparableBlob right)
         {
             if (left == null)
             {
@@ -25,54 +53,51 @@ namespace Knapcode.BlobDelta
                     throw new InvalidOperationException("Only one side should be null.");
                 }
 
-                return new BlobComparison(BlobComparisonType.MissingFromLeft, left, right);
+                return BlobComparisonType.MissingFromLeft;
             }
 
             if (right == null)
             {
-                return new BlobComparison(BlobComparisonType.MissingFromRight, left, right);
+                return BlobComparisonType.MissingFromRight;
             }
 
-            var nameComparison = string.CompareOrdinal(left.Blob.Name, right.Blob.Name);
+            var nameComparison = string.CompareOrdinal(left.Name, right.Name);
             if (nameComparison < 0)
             {
-                return new BlobComparison(BlobComparisonType.MissingFromRight, left: left, right: null);
+                return BlobComparisonType.MissingFromRight;
             }
             else if (nameComparison > 0)
             {
-                return new BlobComparison(BlobComparisonType.MissingFromLeft, left: null, right: right);
+                return BlobComparisonType.MissingFromLeft;
             }
 
-            var leftType = left.Blob.GetType();
-            if (leftType != right.Blob.GetType())
+            var leftType = left.BlobType;
+            if (leftType != right.BlobType)
             {
-                return new BlobComparison(BlobComparisonType.DifferentBlobType, left, right);
+                return BlobComparisonType.DifferentBlobType;
             }
 
             if (leftType != typeof(CloudBlockBlob))
             {
-                return new BlobComparison(BlobComparisonType.UnsupportedBlobType, left, right);
+                return BlobComparisonType.UnsupportedBlobType;
             }
 
-            var leftBlob = (CloudBlockBlob)left.Blob;
-            var rightBlob = (CloudBlockBlob)right.Blob;
-
-            if (leftBlob.Properties.Length != rightBlob.Properties.Length)
+            if (left.Length != right.Length)
             {
-                return new BlobComparison(BlobComparisonType.DifferentContent, left, right);
+                return BlobComparisonType.DifferentContent;
             }
 
-            if (leftBlob.Properties.ContentMD5 == null || rightBlob.Properties.ContentMD5 == null)
+            if (left.ContentMD5 == null || right.ContentMD5 == null)
             {
-                return new BlobComparison(BlobComparisonType.MissingContentMD5, left, right);
+                return BlobComparisonType.MissingContentMD5;
             }
 
-            if (leftBlob.Properties.ContentMD5 != rightBlob.Properties.ContentMD5)
+            if (left.ContentMD5 != right.ContentMD5)
             {
-                return new BlobComparison(BlobComparisonType.DifferentContent, left, right);
+                return BlobComparisonType.DifferentContent;
             }
 
-            return new BlobComparison(BlobComparisonType.Same, left, right);
+            return BlobComparisonType.Same;
         }
     }
 }
