@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Knapcode.BlobDelta.Test.Support;
 using Microsoft.WindowsAzure.Storage.Blob;
@@ -104,20 +105,18 @@ namespace Knapcode.BlobDelta.Test.Functional
                     "b");
 
                 Assert.Equal("b", tree.Prefix);
-                Assert.Equal(3, tree.Children.Count);
-                Assert.Equal("b", tree.Children[0].Prefix);
-                Assert.Equal("ba", tree.Children[1].Prefix);
-                Assert.Equal("bb", tree.Children[2].Prefix);
+                Assert.Equal(2, tree.Children.Count);
+                Assert.Equal("ba", tree.Children[0].Prefix);
+                Assert.Equal("bb", tree.Children[1].Prefix);
 
-                await AssertBlobNamesAt(tree.Children[0], "b", "ba", "bb");
-                await AssertBlobNamesAt(tree.Children[1], "ba", "bb");
-                await AssertBlobNamesAt(tree.Children[2], "bb");
+                await AssertBlobNamesAt(tree.Children[0], "ba", "bb");
+                await AssertBlobNamesAt(tree.Children[1], "bb");
             }
         }
 
-        public class SingleBlobInPrefix : Test
+        public class SingleBlobInPrefixNotMatchingPrefix : Test
         {
-            public SingleBlobInPrefix(ITestOutputHelper output) : base(output)
+            public SingleBlobInPrefixNotMatchingPrefix(ITestOutputHelper output) : base(output)
             {
             }
 
@@ -136,6 +135,28 @@ namespace Knapcode.BlobDelta.Test.Functional
                 Assert.Equal("ee", tree.Children[0].Prefix);
 
                 await AssertBlobNamesAt(tree.Children[0], "eee");
+            }
+        }
+
+
+        public class SingleBlobInPrefixMatchingPrefix : Test
+        {
+            public SingleBlobInPrefixMatchingPrefix(ITestOutputHelper output) : base(output)
+            {
+            }
+
+            [Fact]
+            public async Task Run()
+            {
+                await CreateBlockBlobsAsync("a", "cc", "eee");
+
+                var tree = await Target.EnumerateLeadingCharacters(
+                    Account,
+                    ContainerName,
+                    "cc");
+
+                Assert.Equal("cc", tree.Prefix);
+                Assert.Empty(tree.Children);
             }
         }
 
@@ -277,20 +298,18 @@ namespace Knapcode.BlobDelta.Test.Functional
                     "😃");
 
                 Assert.Equal("😃", tree.Prefix);
-                Assert.Equal(6, tree.Children.Count);
-                Assert.Equal("😃", tree.Children[0].Prefix);
-                Assert.Equal("😃a", tree.Children[1].Prefix);
-                Assert.Equal("😃¥", tree.Children[2].Prefix);
-                Assert.Equal("😃𐐷", tree.Children[3].Prefix);
-                Assert.Equal("😃😃", tree.Children[4].Prefix);
-                Assert.Equal("😃𤭢", tree.Children[5].Prefix);
+                Assert.Equal(5, tree.Children.Count);
+                Assert.Equal("😃a", tree.Children[0].Prefix);
+                Assert.Equal("😃¥", tree.Children[1].Prefix);
+                Assert.Equal("😃𐐷", tree.Children[2].Prefix);
+                Assert.Equal("😃😃", tree.Children[3].Prefix);
+                Assert.Equal("😃𤭢", tree.Children[4].Prefix);
 
-                await AssertBlobNamesAt(tree.Children[0], "😃", "😃a", "😃¥", "😃𐐷a", "😃😃😃", "😃𤭢aa");
-                await AssertBlobNamesAt(tree.Children[1], "😃a", "😃¥", "😃𐐷a", "😃😃😃", "😃𤭢aa");
-                await AssertBlobNamesAt(tree.Children[2], "😃¥", "😃𐐷a", "😃😃😃", "😃𤭢aa");
-                await AssertBlobNamesAt(tree.Children[3], "😃𐐷a", "😃😃😃", "😃𤭢aa");
-                await AssertBlobNamesAt(tree.Children[4], "😃😃😃", "😃𤭢aa");
-                await AssertBlobNamesAt(tree.Children[5], "😃𤭢aa");
+                await AssertBlobNamesAt(tree.Children[0], "😃a", "😃¥", "😃𐐷a", "😃😃😃", "😃𤭢aa");
+                await AssertBlobNamesAt(tree.Children[1], "😃¥", "😃𐐷a", "😃😃😃", "😃𤭢aa");
+                await AssertBlobNamesAt(tree.Children[2], "😃𐐷a", "😃😃😃", "😃𤭢aa");
+                await AssertBlobNamesAt(tree.Children[3], "😃😃😃", "😃𤭢aa");
+                await AssertBlobNamesAt(tree.Children[4], "😃𤭢aa");
             }
         }
 
@@ -311,14 +330,12 @@ namespace Knapcode.BlobDelta.Test.Functional
                     "¥");
 
                 Assert.Equal("¥", tree.Prefix);
-                Assert.Equal(3, tree.Children.Count);
-                Assert.Equal("¥", tree.Children[0].Prefix);
-                Assert.Equal("¥a", tree.Children[1].Prefix);
-                Assert.Equal("¥b", tree.Children[2].Prefix);
+                Assert.Equal(2, tree.Children.Count);
+                Assert.Equal("¥a", tree.Children[0].Prefix);
+                Assert.Equal("¥b", tree.Children[1].Prefix);
 
-                await AssertBlobNamesAt(tree.Children[0], "¥", "¥a", "¥bb");
-                await AssertBlobNamesAt(tree.Children[1], "¥a", "¥bb");
-                await AssertBlobNamesAt(tree.Children[2], "¥bb");
+                await AssertBlobNamesAt(tree.Children[0], "¥a", "¥bb");
+                await AssertBlobNamesAt(tree.Children[1], "¥bb");
             }
 
             public class AllowsDrillDown : Test
@@ -355,13 +372,13 @@ namespace Knapcode.BlobDelta.Test.Functional
                     var nodeAAAA = await Target.EnumerateLeadingCharacters(
                         Account,
                         ContainerName,
-                        nodeAAA.Children[1]);
+                        nodeAAA.Children[0]);
 
                     AssertChildrenPartialPrefixes(root, "A", "B", "C");
                     AssertChildrenPartialPrefixes(nodeA, "A", "B");
                     AssertChildrenPartialPrefixes(nodeAA, "A", "B", "C");
-                    AssertChildrenPartialPrefixes(nodeAAA, string.Empty, "A", "B");
-                    AssertChildrenPartialPrefixes(nodeAAAA, string.Empty);
+                    AssertChildrenPartialPrefixes(nodeAAA, "A", "B");
+                    AssertChildrenPartialPrefixes(nodeAAAA);
                 }
             }
         }

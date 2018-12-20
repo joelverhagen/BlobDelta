@@ -174,8 +174,7 @@ namespace Knapcode.BlobDelta
             BlobContinuationToken token;
             if (results[0].Name.Length == node.Prefix.Length)
             {
-                node.GetOrAddChild(string.Empty, token: null);
-                _logger.LogInformation("There is a blob name matching the prefix {Prefix} exactly. An empty string node has been added.", node.Prefix);
+                _logger.LogInformation("There is a blob name matching the prefix {Prefix} exactly.", node.Prefix);
 
                 if (results.Count > 1)
                 {
