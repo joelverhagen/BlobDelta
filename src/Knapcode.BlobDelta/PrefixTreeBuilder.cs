@@ -42,11 +42,14 @@ namespace Knapcode.BlobDelta
             var client = account.CreateCloudBlobClient();
             var container = client.GetContainerReference(containerName);
 
-            BlobContinuationToken currentToken = null;
-            var firstBlobName = await GetFirstBlobNameAsync(container, node.Prefix, token: currentToken);
-            var delimiter = GetNthCharacter(firstBlobName, node.Prefix.Length);
-            _logger.LogInformation("Starting with delimiter {Delimiter}", delimiter);
-            node.GetOrAddChild(delimiter, currentToken);
+            var initialNode = await GetInitialNodeOrNullAsync(account, container, node);
+            if (initialNode == null)
+            {
+                return;
+            }
+
+            var currentToken = initialNode.Token;
+            var delimiter = initialNode.PartialPrefix;
 
             var resultCount = 2;
             while (resultCount > 1)
@@ -132,27 +135,70 @@ namespace Knapcode.BlobDelta
             _logger.LogInformation("Done. Found {Count} leading characters.", node.Children.Count);
         }
 
-        private async Task<string> GetFirstBlobNameAsync(
+        private async Task<PrefixNode> GetInitialNodeOrNullAsync(
+            CloudStorageAccount account,
             CloudBlobContainer container,
-            string prefix,
-            BlobContinuationToken token)
+            PrefixNode node)
         {
-            _logger.LogInformation("Fetching first blob name with prefix {Prefix}.", prefix);
+            _logger.LogInformation("Fetching first blob name with prefix {Prefix}.", node.Prefix);
 
+            // We fetch two results here because it's possible that there is a blob with a name exactly matching the
+            // prefix. This is a special case where a node with an empty string prefix is added.
             var segment = await container.ListBlobsSegmentedAsync(
-                prefix,
+                node.Prefix,
                 useFlatBlobListing: true,
                 blobListingDetails: BlobListingDetails.None,
-                maxResults: 1,
-                currentToken: token,
+                maxResults: 2,
+                currentToken: null,
                 options: null,
                 operationContext: null);
 
-            LogSegment(prefix, delimiter: null, segment: segment);
+            LogSegment(node.Prefix, delimiter: null, segment: segment);
 
             var results = segment.Results.Cast<ICloudBlob>().ToList();
+            if (results.Count == 0)
+            {
+                _logger.LogInformation("Done. There are no blobs with prefix {Prefix}.", node.Prefix);
+                return null;
+            }
 
-            return results.First().Name;
+            string firstBlobName;
+            BlobContinuationToken token;
+            if (results[0].Name.Length == node.Prefix.Length)
+            {
+                node.GetOrAddChild(string.Empty, token: null);
+                _logger.LogInformation("There is a blob name matching the prefix {Prefix} exactly. An empty string node has been added.", node.Prefix);
+
+                if (results.Count > 1)
+                {
+                    firstBlobName = results[1].Name;
+
+                    // Get a continuation token skipping that initial blob.
+                    var segmentWithBlobMatchingSegment = await container.ListBlobsSegmentedAsync(
+                        node.Prefix,
+                        useFlatBlobListing: true,
+                        blobListingDetails: BlobListingDetails.None,
+                        maxResults: 1,
+                        currentToken: null,
+                        options: null,
+                        operationContext: null);
+                    token = segmentWithBlobMatchingSegment.ContinuationToken;
+                }
+                else
+                {
+                    _logger.LogInformation("Done. There is only one blob and its name exactly matching the prefix {Prefix}.", node.Prefix);
+                    return null;
+                }
+            }
+            else
+            {
+                firstBlobName = results[0].Name;
+                token = null;
+            }
+
+            var delimiter = GetNthCharacter(firstBlobName, node.Prefix.Length);
+            _logger.LogInformation("Starting with delimiter {Delimiter}", delimiter);
+            return node.GetOrAddChild(delimiter, token);
         }
 
         private async Task<BlobResultSegment> GetDelimitedSegmentAsync(
@@ -224,15 +270,14 @@ namespace Knapcode.BlobDelta
 
         private static string GetNthCharacter(string input, int index)
         {
-            for (var i = 0; i < input.Length; i++)
+            if (char.IsSurrogatePair(input, index))
             {
-                if (char.IsSurrogate(input[i]))
-                {
-                    throw new NotSupportedException();
-                }
+                return input.Substring(index, 2);
             }
-
-            return input.Substring(index, 1);
+            else
+            {
+                return input.Substring(index, 1);
+            }
         }
 
         private void LogSegment(
@@ -257,7 +302,7 @@ namespace Knapcode.BlobDelta
                 }
             }
 
-            _logger.LogInformation("Got a segment with {Count} results. Results: {Blobs}", blobs);
+            _logger.LogInformation("Got a segment with {Count} results. Results: {Blobs}", blobs.Count, blobs);
         }
 
         /// <summary>

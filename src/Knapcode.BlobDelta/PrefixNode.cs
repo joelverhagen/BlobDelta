@@ -45,14 +45,20 @@ namespace Knapcode.BlobDelta
                     return existingChild;
                 }
 
-                if (existingChild.PartialPrefix.StartsWith(partialPrefix))
+                // When the partial prefix is an empty string, this indicates that there is a blob with a name exactly
+                // matching the prefix. This is allowed by this data structure. For all other partial prefixes, perform
+                // some sanity checks.
+                if (existingChild.PartialPrefix != string.Empty)
                 {
-                    throw new ArgumentException("An added child must not have a prefix that is more specific that an existing child.");
-                }
+                    if (existingChild.PartialPrefix.StartsWith(partialPrefix))
+                    {
+                        throw new ArgumentException("An added child must not have a prefix that is more specific that an existing child.");
+                    }
 
-                if (partialPrefix.StartsWith(existingChild.PartialPrefix))
-                {
-                    throw new ArgumentException("An added child must not have a prefix that is less specific that an existing child.");
+                    if (partialPrefix.StartsWith(existingChild.PartialPrefix))
+                    {
+                        throw new ArgumentException("An added child must not have a prefix that is less specific that an existing child.");
+                    }
                 }
             }
 
