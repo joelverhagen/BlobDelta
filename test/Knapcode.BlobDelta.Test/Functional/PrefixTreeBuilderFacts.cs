@@ -320,6 +320,50 @@ namespace Knapcode.BlobDelta.Test.Functional
                 await AssertBlobNamesAt(tree.Children[1], "¥a", "¥bb");
                 await AssertBlobNamesAt(tree.Children[2], "¥bb");
             }
+
+            public class AllowsDrillDown : Test
+            {
+                public AllowsDrillDown(ITestOutputHelper output) : base(output)
+                {
+                }
+
+                [Fact]
+                public async Task Run()
+                {
+                    await CreateBlockBlobsAsync("AAAA", "AAAB", "AAA", "AAB", "AAC", "ABA", "ABC", "BAA", "BCC", "CAA");
+
+                    var root = await Target.EnumerateLeadingCharacters(
+                        Account,
+                        ContainerName,
+                        string.Empty);
+
+                    var nodeA = await Target.EnumerateLeadingCharacters(
+                        Account,
+                        ContainerName,
+                        root.Children[0]);
+
+                    var nodeAA = await Target.EnumerateLeadingCharacters(
+                        Account,
+                        ContainerName,
+                        nodeA.Children[0]);
+
+                    var nodeAAA = await Target.EnumerateLeadingCharacters(
+                        Account,
+                        ContainerName,
+                        nodeAA.Children[0]);
+
+                    var nodeAAAA = await Target.EnumerateLeadingCharacters(
+                        Account,
+                        ContainerName,
+                        nodeAAA.Children[1]);
+
+                    AssertChildrenPartialPrefixes(root, "A", "B", "C");
+                    AssertChildrenPartialPrefixes(nodeA, "A", "B");
+                    AssertChildrenPartialPrefixes(nodeAA, "A", "B", "C");
+                    AssertChildrenPartialPrefixes(nodeAAA, string.Empty, "A", "B");
+                    AssertChildrenPartialPrefixes(nodeAAAA, string.Empty);
+                }
+            }
         }
 
         public class Test : BlobContainerEnumerableFacts.Test
@@ -332,6 +376,15 @@ namespace Knapcode.BlobDelta.Test.Functional
 
             public RecordingLogger<PrefixTreeBuilder> Logger { get; }
             public PrefixTreeBuilder Target { get; }
+
+            public void AssertChildrenPartialPrefixes(PrefixNode node, params string[] expected)
+            {
+                Assert.Equal(expected.Length, node.Children.Count);
+                for (var i = 0; i < expected.Length; i++)
+                {
+                    Assert.Equal(expected[i], node.Children[i].PartialPrefix);
+                }
+            }
 
             public async Task AssertBlobNamesAt(PrefixNode node, params string[] expected)
             {

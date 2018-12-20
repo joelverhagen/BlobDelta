@@ -20,18 +20,26 @@ namespace Knapcode.BlobDelta
         public async Task<PrefixNode> EnumerateLeadingCharacters(
             CloudStorageAccount account,
             string containerName,
-            string prefix)
+            PrefixNode parent)
         {
             using (_logger.BeginScope(
                 "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
-                prefix,
+                parent.Prefix,
                 containerName,
                 account.BlobEndpoint.AbsoluteUri))
             {
-                var node = new PrefixNode(parent: null, partialPrefix: prefix, token: null);
-                await PopulateNodeWithLeadingCharacters(account, containerName, node);
-                return node;
+                await PopulateNodeWithLeadingCharacters(account, containerName, parent);
+                return parent;
             }
+        }
+
+        public async Task<PrefixNode> EnumerateLeadingCharacters(
+            CloudStorageAccount account,
+            string containerName,
+            string prefix)
+        {
+            var node = new PrefixNode(parent: null, partialPrefix: prefix, token: null);
+            return await EnumerateLeadingCharacters(account, containerName, node);
         }
 
         private async Task PopulateNodeWithLeadingCharacters(
