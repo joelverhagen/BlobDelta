@@ -23,10 +23,28 @@ namespace Knapcode.BlobDelta
         public BlobEnumerable(CloudBlobContainer container) : this(
             container,
             initialToken: null,
-            prefix: null,
-            minBlobName: null,
-            maxBlobName: null,
-            pageSize: MaxPageSize)
+            prefix: null)
+        {
+        }
+
+        /// <summary>
+        /// Initializes an enumerable that asynchronously enumerates over a blob storage container.
+        /// </summary>
+        /// <param name="container">The blob storage container to enumerate over.</param>
+        /// <param name="initialToken">The initial, inclusive continuation token to use. Can be null.</param>
+        /// <param name="prefix">The prefix to limit the enumerated blobs to.</param>
+        /// The page size to use. Must be greater or equal to 0 and less than or equal to 5000.
+        /// </param>
+        public BlobEnumerable(
+            CloudBlobContainer container,
+            BlobContinuationToken initialToken,
+            string prefix) : this(
+                container,
+                initialToken,
+                prefix,
+                minBlobName: null,
+                maxBlobName: null,
+                pageSize: MaxPageSize)
         {
         }
 
