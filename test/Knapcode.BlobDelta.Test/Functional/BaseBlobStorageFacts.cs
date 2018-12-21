@@ -33,9 +33,11 @@ namespace Knapcode.BlobDelta.Test.Functional
             Output.WriteLine($"Using blob endpoint: {Account.BlobEndpoint}");
         }
 
-        public static string GetContainerName()
+        public string ContainerNamePrefix => "blobdelta-test-";
+
+        public string GetContainerName()
         {
-            return $"blobdelta-test-{Guid.NewGuid():N}";
+            return $"{ContainerNamePrefix}{Guid.NewGuid():N}";
         }
 
         private static string GetConnectionString()
