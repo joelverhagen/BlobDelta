@@ -1,0 +1,12 @@
+version: 0.0.0-appveyor-{build}
+image: Visual Studio 2017
+environment:
+  BlobDeltaVersion: $(APPVEYOR_BUILD_VERSION)
+  PackageOutputPath: $(APPVEYOR_BUILD_FOLDER)\artifacts\packages
+before_build:
+- cmd: nuget restore
+build:
+  verbosity: minimal
+artifacts:
+- path: artifacts\**\*.nupkg
+- path: artifacts\**\*.snupkg
