@@ -115,6 +115,9 @@ namespace Knapcode.BlobDelta
                                 foreach (var child in prefixNodeAndDepth.Node.Children)
                                 {
                                     queue.Enqueue(new PrefixNodeAndDepth(child, prefixNodeAndDepth.Depth - 1));
+
+                                    // There's one unit of work available for the next worker.
+                                    Monitor.Pulse(workLock);
                                 }
                             }
 
@@ -125,7 +128,12 @@ namespace Knapcode.BlobDelta
                                 prefixNodeAndDepth.Node.Prefix,
                                 prefixNodeAndDepth.Node.Children.Count,
                                 localInProgressCount);
-                            Monitor.PulseAll(workLock);
+                            
+                            if (queue.Count == 0 && localInProgressCount == 0)
+                            {
+                                // We're done. Signal all workers to stop waiting so that they can terminate.
+                                Monitor.PulseAll(workLock);
+                            }
                         }
                     }
                 })
