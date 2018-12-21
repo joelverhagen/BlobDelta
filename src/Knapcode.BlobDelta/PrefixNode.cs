@@ -25,6 +25,43 @@ namespace Knapcode.BlobDelta
             }
         }
 
+        public IReadOnlyList<PrefixNode> GetNonEnumeratedNodes()
+        {
+            var output = new List<PrefixNode>();
+            BreadthFirstSearch(output, x => !x.IsEnumerated);
+            return output;
+        }
+
+        public IReadOnlyList<PrefixNode> GetBlobNodes()
+        {
+            var output = new List<PrefixNode>();
+            BreadthFirstSearch(output, x => x.IsBlob);
+            return output;
+        }
+
+        private void BreadthFirstSearch(
+            List<PrefixNode> output,
+            Predicate<PrefixNode> shouldInclude)
+        {
+            var nodes = new Queue<PrefixNode>();
+            nodes.Enqueue(this);
+
+            while(nodes.Count > 0)
+            {
+                var node = nodes.Dequeue();
+
+                if (shouldInclude(node))
+                {
+                    output.Add(node);
+                }
+
+                foreach (var child in node.Children)
+                {
+                    nodes.Enqueue(child);
+                }
+            }
+        }
+
         public PrefixNode Parent { get; }
         public string PartialPrefix { get; }
         public BlobContinuationToken Token { get; }
