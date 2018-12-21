@@ -12,9 +12,9 @@ using Xunit.Abstractions;
 
 namespace Knapcode.BlobDelta.Test.Functional
 {
-    public abstract class BaseFacts
+    public abstract class BaseBlobStorageFacts
     {
-        static BaseFacts()
+        static BaseBlobStorageFacts()
         {
             ServicePointManager.DefaultConnectionLimit = 64;
         }
@@ -24,7 +24,7 @@ namespace Knapcode.BlobDelta.Test.Functional
         public CloudStorageAccount Account { get; }
         public CloudBlobClient BlobClient { get; }
 
-        public BaseFacts(ITestOutputHelper output)
+        public BaseBlobStorageFacts(ITestOutputHelper output)
         {
             Output = output;
             ConnectionString = GetConnectionString();

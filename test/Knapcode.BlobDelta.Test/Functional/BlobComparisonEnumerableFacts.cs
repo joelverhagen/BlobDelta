@@ -227,7 +227,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             }
         }
 
-        public class Test : BaseFacts, IAsyncLifetime
+        public class Test : BaseBlobStorageFacts, IAsyncLifetime
         {
             public Test(ITestOutputHelper output) : base(output)
             {

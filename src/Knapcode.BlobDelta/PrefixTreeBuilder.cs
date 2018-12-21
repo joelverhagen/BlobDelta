@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage;
@@ -41,58 +40,13 @@ namespace Knapcode.BlobDelta
             PrefixNode parent,
             int depth)
         {
-            using (var queue = new AsyncBlockingQueue<PrefixNodeAndDepth>())
+            using (var queue = new AsyncProducerQueue<PrefixNodeAndDepth>(
+                item => PopulateNodeWithLeadingCharactersAsync(account, containerName, item),
+                new[] { new PrefixNodeAndDepth(parent, depth) }))
             {
-                queue.Enqueue(new PrefixNodeAndDepth(parent, depth));
-                var inProgressCount = 0;
-
                 var workerTasks = Enumerable
                     .Range(0, _configuration.WorkerCount)
-                    .Select(async workerIndex =>
-                    {
-                        await Task.Yield();
-
-                        while (true)
-                        {
-                            var result = await queue.TryDequeueAsync();
-                            if (!result.HasItem)
-                            {
-                                return;
-                            }
-
-                            var prefixNodeAndDepth = result.Item;
-                            Interlocked.Increment(ref inProgressCount);
-
-                            // Enumerate the node, if necessary.
-                            if (!prefixNodeAndDepth.Node.IsEnumerated)
-                            {
-                                using (_logger.BeginScope(
-                                    "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
-                                    prefixNodeAndDepth.Node.Prefix,
-                                    containerName,
-                                    account.BlobEndpoint.AbsoluteUri))
-                                {
-                                    await PopulateNodeWithLeadingCharacters(account, containerName, prefixNodeAndDepth.Node);
-                                }
-                            }
-
-                            // Enqueue the children, if we haven't hit our depth limit.
-                            if (prefixNodeAndDepth.Depth > 1)
-                            {
-                                queue.EnqueueRange(prefixNodeAndDepth
-                                    .Node
-                                    .Children
-                                    .Select(x => new PrefixNodeAndDepth(x, prefixNodeAndDepth.Depth - 1)));
-                            }
-
-                            Interlocked.Decrement(ref inProgressCount);
-
-                            if (queue.Count == 0 && inProgressCount == 0)
-                            {
-                                queue.MarkAsComplete();
-                            }
-                        }
-                    })
+                    .Select(_ => queue.ExecuteAsync())
                     .ToList();
 
                 await Task.WhenAll(workerTasks);
@@ -101,7 +55,37 @@ namespace Knapcode.BlobDelta
             }
         }
 
-        private async Task PopulateNodeWithLeadingCharacters(
+        private async Task<IEnumerable<PrefixNodeAndDepth>> PopulateNodeWithLeadingCharactersAsync(
+            CloudStorageAccount account,
+            string containerName,
+            PrefixNodeAndDepth item)
+        {
+            // Enumerate the node, if necessary.
+            if (!item.Node.IsEnumerated)
+            {
+                using (_logger.BeginScope(
+                    "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
+                    item.Node.Prefix,
+                    containerName,
+                    account.BlobEndpoint.AbsoluteUri))
+                {
+                    await PopulateNodeWithLeadingCharactersAsync(account, containerName, item.Node);
+                }
+            }
+
+            // Enqueue the children, if we haven't hit our depth limit.
+            if (item.Depth > 1)
+            {
+                return item
+                    .Node
+                    .Children
+                    .Select(x => new PrefixNodeAndDepth(x, item.Depth - 1));
+            }
+
+            return Enumerable.Empty<PrefixNodeAndDepth>();
+        }
+
+        private async Task PopulateNodeWithLeadingCharactersAsync(
             CloudStorageAccount account,
             string containerName,
             PrefixNode node)
