@@ -5,7 +5,8 @@
     <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Joel Verhagen</Authors>
-    <Version>0.3.0</Version>
+    <VersionPrefix>0.3.0</VersionPrefix>
+    <VersionSuffix Condition="'$(BLOBDELTA_BUILD_NUMBER)' != ''">build-$(BLOBDELTA_BUILD_NUMBER)</VersionSuffix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/joelverhagen/BlobDelta</PackageProjectUrl>
     <RepositoryUrl>https://github.com/joelverhagen/BlobDelta</RepositoryUrl>
