@@ -5,8 +5,11 @@
     <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Joel Verhagen</Authors>
-    <VersionPrefix>0.3.0</VersionPrefix>
-    <VersionSuffix Condition="'$(BLOBDELTA_BUILD_NUMBER)' != ''">build-$(BLOBDELTA_BUILD_NUMBER)</VersionSuffix>
+    <Version Condition="'$(BlobDeltaVersion)' != ''">$(BlobDeltaVersion)</Version>
+    <VersionPrefix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionPrefix)' == ''">0.0.0</VersionPrefix>
+    <VersionPrefix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionPrefix)' != ''">$(BlobDeltaVersionPrefix)</VersionPrefix>
+    <VersionSuffix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionSuffix)' == ''">local</VersionSuffix>
+    <VersionSuffix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionSuffix)' != ''">$(BlobDeltaVersionSuffix)</VersionSuffix>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/joelverhagen/BlobDelta</PackageProjectUrl>
     <RepositoryUrl>https://github.com/joelverhagen/BlobDelta</RepositoryUrl>
