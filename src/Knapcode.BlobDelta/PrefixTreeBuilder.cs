@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -43,123 +41,64 @@ namespace Knapcode.BlobDelta
             PrefixNode parent,
             int depth)
         {
-            var queue = new Queue<PrefixNodeAndDepth>();
-            queue.Enqueue(new PrefixNodeAndDepth(parent, depth));
-            var queueLock = new object();
-            var inProgressCount = 0;
+            using (var queue = new AsyncBlockingQueue<PrefixNodeAndDepth>())
+            {
+                queue.Enqueue(new PrefixNodeAndDepth(parent, depth));
+                var inProgressCount = 0;
 
-            var workerTasks = Enumerable
-                .Range(0, _configuration.WorkerCount)
-                .Select(async workerIndex =>
-                {
-                    await Task.Yield();
-
-                    var shouldLogAboutWaiting = true;
-                    while (true)
+                var workerTasks = Enumerable
+                    .Range(0, _configuration.WorkerCount)
+                    .Select(async workerIndex =>
                     {
-                        var shouldWait = false;
-                        PrefixNodeAndDepth prefixNodeAndDepth = null;
-                        lock (queueLock)
+                        await Task.Yield();
+
+                        while (true)
                         {
-                            if (queue.Count == 0)
+                            var result = await queue.TryDequeueAsync();
+                            if (!result.HasItem)
                             {
-                                if (inProgressCount == 0)
+                                return;
+                            }
+
+                            var prefixNodeAndDepth = result.Item;
+                            Interlocked.Increment(ref inProgressCount);
+
+                            // Enumerate the node, if necessary.
+                            if (!prefixNodeAndDepth.Node.IsEnumerated)
+                            {
+                                using (_logger.BeginScope(
+                                    "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
+                                    prefixNodeAndDepth.Node.Prefix,
+                                    containerName,
+                                    account.BlobEndpoint.AbsoluteUri))
                                 {
-                                    _logger.LogTrace(
-                                       "[Worker {WorkerIndex}] The queue is empty and there are no other workers in progress. Terminating.",
-                                       workerIndex);
-                                    return;
-                                }
-                                else
-                                {
-                                    shouldWait = true;
+                                    await PopulateNodeWithLeadingCharacters(account, containerName, prefixNodeAndDepth.Node);
                                 }
                             }
-                            else
-                            {
-                                shouldLogAboutWaiting = true;
-                                prefixNodeAndDepth = queue.Dequeue();
-                                Interlocked.Increment(ref inProgressCount);
-                            }
-                        }
 
-                        if (shouldWait)
-                        {
-                            if (shouldLogAboutWaiting)
-                            {
-                                _logger.LogTrace(
-                                    "[Worker {WorkerIndex}] The queue is empty but there are {Count} other workers in progress. Waiting.",
-                                    workerIndex,
-                                    inProgressCount);
-                                shouldLogAboutWaiting = false;
-                            }
-
-                            await Task.Delay(TimeSpan.FromMilliseconds(250));
-                            continue;
-                        }
-
-                        _logger.LogTrace(
-                            "[Worker {WorkerIndex}] Starting on node '{Prefix}'.",
-                            workerIndex,
-                            prefixNodeAndDepth.Node.Prefix);
-
-                        // Enumerate the node, if necessary.
-                        if (!prefixNodeAndDepth.Node.IsEnumerated)
-                        {
-                            _logger.LogTrace(
-                                "[Worker {WorkerIndex}] Enumerating node '{Prefix}'.",
-                                workerIndex,
-                                prefixNodeAndDepth.Node.Prefix);
-
-                            using (_logger.BeginScope(
-                                "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
-                                prefixNodeAndDepth.Node.Prefix,
-                                containerName,
-                                account.BlobEndpoint.AbsoluteUri))
-                            {
-                                await PopulateNodeWithLeadingCharacters(account, containerName, prefixNodeAndDepth.Node);
-                            }
-                        }
-                        else
-                        {
-                            _logger.LogTrace(
-                                "[Worker {WorkerIndex}] Node '{Prefix}' has already been enumerated.",
-                                workerIndex,
-                                prefixNodeAndDepth.Node.Prefix);
-                        }
-
-                        lock (queueLock)
-                        {
                             // Enqueue the children, if we haven't hit our depth limit.
                             if (prefixNodeAndDepth.Depth > 1)
                             {
-                                foreach (var child in prefixNodeAndDepth.Node.Children)
-                                {
-                                    queue.Enqueue(new PrefixNodeAndDepth(child, prefixNodeAndDepth.Depth - 1));
-                                }
-
-                                _logger.LogTrace(
-                                    "[Worker {WorkerIndex}] Enqueued {Count} children from '{Prefix}'.",
-                                    workerIndex,
-                                    prefixNodeAndDepth.Node.Children.Count,
-                                    prefixNodeAndDepth.Node.Prefix);
+                                queue.EnqueueRange(prefixNodeAndDepth
+                                    .Node
+                                    .Children
+                                    .Select(x => new PrefixNodeAndDepth(x, prefixNodeAndDepth.Depth - 1)));
                             }
 
                             Interlocked.Decrement(ref inProgressCount);
-                            _logger.LogTrace(
-                                "[Worker {WorkerIndex}] Node '{Prefix}' is complete. There are {InProgressCount} other workers in progress.",
-                                workerIndex,
-                                prefixNodeAndDepth.Node.Prefix,
-                                prefixNodeAndDepth.Node.Children.Count,
-                                inProgressCount);
+
+                            if (queue.Count == 0 && inProgressCount == 0)
+                            {
+                                queue.MarkAsComplete();
+                            }
                         }
-                    }
-                })
-                .ToList();
+                    })
+                    .ToList();
 
-            await Task.WhenAll(workerTasks);
+                await Task.WhenAll(workerTasks);
 
-            return parent;
+                return parent;
+            }
         }
 
         private async Task PopulateNodeWithLeadingCharacters(
