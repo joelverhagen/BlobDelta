@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage;
@@ -43,38 +44,94 @@ namespace Knapcode.BlobDelta
         {
             var queue = new Queue<PrefixNodeAndDepth>();
             queue.Enqueue(new PrefixNodeAndDepth(parent, depth));
+            var workLock = new object();
+            var inProgressCount = 0;
 
-            while (queue.Count > 0)
-            {
-                var prefixNodeAndDepth = queue.Dequeue();
-
-                if (prefixNodeAndDepth.Depth <= 0)
+            var workerTasks = Enumerable
+                .Range(0, _configuration.WorkerCount)
+                .Select(async workerIndex =>
                 {
-                    continue;
-                }
+                    await Task.Yield();
 
-                if (prefixNodeAndDepth.Node.IsEnumerated)
-                {
-                    continue;
-                }
-
-                using (_logger.BeginScope(
-                    "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
-                    prefixNodeAndDepth.Node.Prefix,
-                    containerName,
-                    account.BlobEndpoint.AbsoluteUri))
-                {
-                    await PopulateNodeWithLeadingCharacters(account, containerName, prefixNodeAndDepth.Node);
-                }
-
-                if (prefixNodeAndDepth.Depth > 1)
-                {
-                    foreach (var child in prefixNodeAndDepth.Node.Children)
+                    while (true)
                     {
-                        queue.Enqueue(new PrefixNodeAndDepth(child, prefixNodeAndDepth.Depth - 1));
+                        PrefixNodeAndDepth prefixNodeAndDepth;
+                        lock (workLock)
+                        {
+                            while (queue.Count == 0)
+                            {
+                                var localInProgressCount = inProgressCount;
+                                if (localInProgressCount == 0)
+                                {
+                                    _logger.LogTrace(
+                                        "[Worker {WorkerIndex}] The queue is empty and there are no other workers in progress. Terminating.",
+                                        workerIndex);
+                                    return;
+                                }
+
+                                _logger.LogTrace(
+                                    "[Worker {WorkerIndex}] The queue is empty but there are {Count} other workers in progress. Waiting.",
+                                    workerIndex,
+                                    localInProgressCount);
+                                Monitor.Wait(workLock);
+                            }
+
+                            Interlocked.Increment(ref inProgressCount);
+                            prefixNodeAndDepth = queue.Dequeue();
+                            _logger.LogTrace(
+                                "[Worker {WorkerIndex}] Starting on node '{Prefix}'.",
+                                workerIndex,
+                                prefixNodeAndDepth.Node.Prefix);
+                        }
+
+                        if (!prefixNodeAndDepth.Node.IsEnumerated)
+                        {
+                            _logger.LogTrace(
+                                "[Worker {WorkerIndex}] Enumerating node '{Prefix}'.",
+                                workerIndex,
+                                prefixNodeAndDepth.Node.Prefix);
+
+                            using (_logger.BeginScope(
+                                "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
+                                prefixNodeAndDepth.Node.Prefix,
+                                containerName,
+                                account.BlobEndpoint.AbsoluteUri))
+                            {
+                                await PopulateNodeWithLeadingCharacters(account, containerName, prefixNodeAndDepth.Node);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogTrace(
+                                "[Worker {WorkerIndex}] Node '{Prefix}' has already been enumerated.",
+                                workerIndex,
+                                prefixNodeAndDepth.Node.Prefix);
+                        }
+
+                        lock (workLock)
+                        {
+                            if (prefixNodeAndDepth.Depth > 1)
+                            {
+                                foreach (var child in prefixNodeAndDepth.Node.Children)
+                                {
+                                    queue.Enqueue(new PrefixNodeAndDepth(child, prefixNodeAndDepth.Depth - 1));
+                                }
+                            }
+
+                            var localInProgressCount = Interlocked.Decrement(ref inProgressCount);
+                            _logger.LogTrace(
+                                "[Worker {WorkerIndex}] Node '{Prefix}' is complete. Enqueued {ChildrenCount} children. There are {InProgressCount} other workers in progress.",
+                                workerIndex,
+                                prefixNodeAndDepth.Node.Prefix,
+                                prefixNodeAndDepth.Node.Children.Count,
+                                localInProgressCount);
+                            Monitor.PulseAll(workLock);
+                        }
                     }
-                }
-            }
+                })
+                .ToList();
+
+            await Task.WhenAll(workerTasks);
 
             return parent;
         }

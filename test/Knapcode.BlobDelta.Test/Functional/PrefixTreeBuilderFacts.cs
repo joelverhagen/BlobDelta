@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using Knapcode.BlobDelta.Test.Support;
+using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Xunit;
 using Xunit.Abstractions;
@@ -410,6 +411,8 @@ namespace Knapcode.BlobDelta.Test.Functional
             [Fact]
             public async Task Run()
             {
+                Configuration = new PrefixTreeBuilderConfiguration(8, LogLevel.Trace);
+                Target = new PrefixTreeBuilder(Configuration, Logger);
                 await CreateBlockBlobsAsync("AAA", "AAAA", "AAAB", "AAB", "AAC", "ABA", "ABC", "BAA", "BCC", "CAA", "CB", "D");
 
                 var root = await Target.EnumerateLeadingCharactersAsync(
@@ -498,14 +501,14 @@ namespace Knapcode.BlobDelta.Test.Functional
         {
             public Test(ITestOutputHelper output) : base(output)
             {
+                Configuration = new PrefixTreeBuilderConfiguration();
                 Logger = output.GetLogger<PrefixTreeBuilder>();
-                Target = new PrefixTreeBuilder(
-                    new PrefixTreeBuilderConfiguration(),
-                    Logger);
+                Target = new PrefixTreeBuilder(Configuration, Logger);
             }
 
+            public PrefixTreeBuilderConfiguration Configuration { get; set; }
             public RecordingLogger<PrefixTreeBuilder> Logger { get; }
-            public PrefixTreeBuilder Target { get; }
+            public PrefixTreeBuilder Target { get; set; }
 
             public void AssertChildrenPartialPrefixes(PrefixNode node, bool isBlob, params string[] expected)
             {
