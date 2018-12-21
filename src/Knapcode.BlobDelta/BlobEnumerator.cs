@@ -10,7 +10,7 @@ namespace Knapcode.BlobDelta
         private const int MaxPageSize = 5000;
 
         private readonly CloudBlobContainer _container;
-        private readonly BlobContinuationToken _initialContinuationToken;
+        private readonly BlobContinuationToken _initialToken;
         private readonly string _minBlobName;
         private readonly string _maxBlobName;
         private readonly string _prefix;
@@ -22,10 +22,10 @@ namespace Knapcode.BlobDelta
         /// <param name="container">The blob storage container to enumerate over.</param>
         public BlobEnumerable(CloudBlobContainer container) : this(
             container,
-            initialContinuationToken: null,
+            initialToken: null,
+            prefix: null,
             minBlobName: null,
             maxBlobName: null,
-            prefix: null,
             pageSize: MaxPageSize)
         {
         }
@@ -34,19 +34,19 @@ namespace Knapcode.BlobDelta
         /// Initializes an enumerable that asynchronously enumerates over a blob storage container.
         /// </summary>
         /// <param name="container">The blob storage container to enumerate over.</param>
-        /// <param name="initialContinuationToken">The initial, inclusive continuation token to use. Can be null.</param>
+        /// <param name="initialToken">The initial, inclusive continuation token to use. Can be null.</param>
+        /// <param name="prefix">The prefix to limit the enumerated blobs to.</param>
         /// <param name="minBlobName">The inclusive minimum blob name. Can be null.</param>
         /// <param name="maxBlobName">The exclusive maximum blob name. Can be null.</param>
-        /// <param name="prefix">The prefix to limit the enumerated blobs to.</param>
         /// <param name="pageSize">
         /// The page size to use. Must be greater or equal to 0 and less than or equal to 5000.
         /// </param>
         public BlobEnumerable(
             CloudBlobContainer container,
-            BlobContinuationToken initialContinuationToken,
+            BlobContinuationToken initialToken,
+            string prefix,
             string minBlobName,
             string maxBlobName,
-            string prefix,
             int? pageSize)
         {
             var actualPageSize = pageSize ?? MaxPageSize;
@@ -56,10 +56,10 @@ namespace Knapcode.BlobDelta
             }
 
             _container = container ?? throw new ArgumentNullException(nameof(container));
-            _initialContinuationToken = initialContinuationToken;
+            _initialToken = initialToken;
+            _prefix = prefix;
             _minBlobName = minBlobName;
             _maxBlobName = maxBlobName;
-            _prefix = prefix;
             _pageSize = actualPageSize;
         }
 
@@ -67,10 +67,10 @@ namespace Knapcode.BlobDelta
         {
             return new BlobEnumerator(
                 _container,
-                _initialContinuationToken,
+                _initialToken,
+                _prefix,
                 _minBlobName,
                 _maxBlobName,
-                _prefix,
                 _pageSize);
         }
 
@@ -80,7 +80,7 @@ namespace Knapcode.BlobDelta
             private readonly string _prefix;
             private readonly int _pageSize;
             private BlobResultSegment _currentSegment;
-            private BlobContinuationToken _currentContinuationToken;
+            private BlobContinuationToken _currentToken;
             private readonly string _minBlobName;
             private readonly string _maxBlobName;
             private IEnumerator<IListBlobItem> _currentEnumerator;
@@ -91,14 +91,14 @@ namespace Knapcode.BlobDelta
 
             public BlobEnumerator(
                 CloudBlobContainer container,
-                BlobContinuationToken initialContinuationToken,
+                BlobContinuationToken initialToken,
+                string prefix,
                 string minBlobName,
                 string maxBlobName,
-                string prefix,
                 int pageSize)
             {
                 _container = container;
-                _currentContinuationToken = initialContinuationToken;
+                _currentToken = initialToken;
                 _minBlobName = minBlobName;
                 _maxBlobName = maxBlobName;
                 _prefix = prefix;
@@ -141,7 +141,7 @@ namespace Knapcode.BlobDelta
                         // point.
                         if (_currentSegment != null)
                         {
-                            _currentContinuationToken = _currentSegment.ContinuationToken;
+                            _currentToken = _currentSegment.ContinuationToken;
                         }
 
                         _currentSegment = await _container.ListBlobsSegmentedAsync(
@@ -149,7 +149,7 @@ namespace Knapcode.BlobDelta
                             useFlatBlobListing: true,
                             blobListingDetails: BlobListingDetails.None,
                             maxResults: _pageSize,
-                            currentToken: _currentContinuationToken,
+                            currentToken: _currentToken,
                             options: null,
                             operationContext: null);
                         _currentEnumerator = _currentSegment.Results.GetEnumerator();
@@ -184,7 +184,7 @@ namespace Knapcode.BlobDelta
 
                 Current = new BlobContext(
                     _currentBlob,
-                    _currentContinuationToken,
+                    _currentToken,
                     _currentSegmentIndex,
                     _currentBlobIndex);
 

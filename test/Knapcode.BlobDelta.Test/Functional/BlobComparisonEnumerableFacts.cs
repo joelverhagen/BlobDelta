@@ -258,16 +258,16 @@ namespace Knapcode.BlobDelta.Test.Functional
                     new BlobEnumerable(
                         LeftContainer,
                         leftInitialContinuationToken,
+                        leftPrefix,
                         leftMinBlobName,
                         leftMaxBlobName,
-                        leftPrefix,
                         leftPageSize),
                     new BlobEnumerable(
                         RightContainer,
                         rightInitialContinuationToken,
+                        rightPrefix,
                         rightMinBlobName,
                         rightMaxBlobName,
-                        rightPrefix,
                         rightPageSize));
             }
 

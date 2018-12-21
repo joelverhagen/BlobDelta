@@ -40,19 +40,22 @@ namespace Knapcode.BlobDelta
             PrefixNode parent,
             int depth)
         {
-            using (var queue = new AsyncProducerQueue<PrefixNodeAndDepth>(
-                item => PopulateNodeWithLeadingCharactersAsync(account, containerName, item),
-                new[] { new PrefixNodeAndDepth(parent, depth) }))
+            if (depth > 0)
             {
-                var workerTasks = Enumerable
-                    .Range(0, _configuration.WorkerCount)
-                    .Select(_ => queue.ExecuteAsync())
-                    .ToList();
+                using (var queue = new AsyncProducerQueue<PrefixNodeAndDepth>(
+                    item => PopulateNodeWithLeadingCharactersAsync(account, containerName, item),
+                    new[] { new PrefixNodeAndDepth(parent, depth) }))
+                {
+                    var workerTasks = Enumerable
+                        .Range(0, _configuration.WorkerCount)
+                        .Select(_ => queue.ExecuteAsync())
+                        .ToList();
 
-                await Task.WhenAll(workerTasks);
-
-                return parent;
+                    await Task.WhenAll(workerTasks);
+                }
             }
+
+            return parent;
         }
 
         private async Task<IEnumerable<PrefixNodeAndDepth>> PopulateNodeWithLeadingCharactersAsync(
@@ -242,6 +245,7 @@ namespace Knapcode.BlobDelta
                 else
                 {
                     _logger.LogInformation("Done. There is only one blob and its name exactly matching the prefix '{Prefix}'.", node.Prefix);
+                    node.MarkAsEnumerated();
                     return null;
                 }
             }

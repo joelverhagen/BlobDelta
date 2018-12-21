@@ -1,8 +1,6 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Knapcode.BlobDelta.Test.Support;
-using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage.Blob;
 using Xunit;
 using Xunit.Abstractions;
@@ -11,9 +9,33 @@ namespace Knapcode.BlobDelta.Test.Functional
 {
     public class PrefixTreeBuilderFacts
     {
-        public class EmptyInitialPrefix : Test
+        public class Depth0 : Test
         {
-            public EmptyInitialPrefix(ITestOutputHelper output) : base(output)
+            public Depth0(ITestOutputHelper output) : base(output)
+            {
+            }
+
+            [Fact]
+            public async Task Run()
+            {
+                await CreateBlockBlobsAsync("a1", "a2", "b1", "b2");
+
+                var tree = await Target.EnumerateLeadingCharactersAsync(
+                    Account,
+                    ContainerName,
+                    string.Empty,
+                    depth: 0);
+
+                Assert.Equal(string.Empty, tree.Prefix);
+                Assert.Empty(tree.Children);
+                Assert.False(tree.IsBlob);
+                Assert.False(tree.IsEnumerated);
+            }
+        }
+
+        public class Depth1 : Test
+        {
+            public Depth1(ITestOutputHelper output) : base(output)
             {
             }
 
@@ -30,11 +52,126 @@ namespace Knapcode.BlobDelta.Test.Functional
 
                 Assert.Equal(string.Empty, tree.Prefix);
                 Assert.Equal(2, tree.Children.Count);
-                Assert.Equal("a", tree.Children[0].Prefix);
-                Assert.Equal("b", tree.Children[1].Prefix);
+                Assert.False(tree.IsBlob);
+                Assert.True(tree.IsEnumerated);
 
-                await AssertBlobNamesAt(tree.Children[0], "a1", "a2", "b1", "b2");
-                await AssertBlobNamesAt(tree.Children[1], "b1", "b2");
+                Assert.Equal("a", tree.Children[0].Prefix);
+                Assert.Empty(tree.Children[0].Children);
+                Assert.False(tree.Children[0].IsBlob);
+                Assert.False(tree.Children[0].IsEnumerated);
+
+                Assert.Equal("b", tree.Children[1].Prefix);
+                Assert.Empty(tree.Children[1].Children);
+                Assert.False(tree.Children[1].IsBlob);
+                Assert.False(tree.Children[1].IsEnumerated);
+            }
+        }
+
+        public class Depth2 : Test
+        {
+            public Depth2(ITestOutputHelper output) : base(output)
+            {
+            }
+
+            [Fact]
+            public async Task Run()
+            {
+                await CreateBlockBlobsAsync("a1", "a2", "b1", "b2");
+
+                var tree = await Target.EnumerateLeadingCharactersAsync(
+                    Account,
+                    ContainerName,
+                    string.Empty,
+                    depth: 2);
+
+                Assert.Equal(string.Empty, tree.Prefix);
+                Assert.Equal(2, tree.Children.Count);
+                Assert.False(tree.IsBlob);
+                Assert.True(tree.IsEnumerated);
+
+                Assert.Equal("a", tree.Children[0].Prefix);
+                Assert.Equal(2, tree.Children[0].Children.Count);
+                Assert.False(tree.Children[0].IsBlob);
+                Assert.True(tree.Children[0].IsEnumerated);
+
+                Assert.Equal("b", tree.Children[1].Prefix);
+                Assert.Equal(2, tree.Children[1].Children.Count);
+                Assert.False(tree.Children[1].IsBlob);
+                Assert.True(tree.Children[1].IsEnumerated);
+
+                Assert.Equal("a1", tree.Children[0].Children[0].Prefix);
+                Assert.Empty(tree.Children[0].Children[0].Children);
+                Assert.False(tree.Children[0].Children[0].IsBlob);
+                Assert.False(tree.Children[0].Children[0].IsEnumerated);
+
+                Assert.Equal("a2", tree.Children[0].Children[1].Prefix);
+                Assert.Empty(tree.Children[0].Children[1].Children);
+                Assert.False(tree.Children[0].Children[1].IsBlob);
+                Assert.False(tree.Children[0].Children[1].IsEnumerated);
+
+                Assert.Equal("b1", tree.Children[1].Children[0].Prefix);
+                Assert.Empty(tree.Children[1].Children[0].Children);
+                Assert.False(tree.Children[1].Children[0].IsBlob);
+                Assert.False(tree.Children[1].Children[0].IsEnumerated);
+
+                Assert.Equal("b2", tree.Children[1].Children[1].Prefix);
+                Assert.Empty(tree.Children[1].Children[1].Children);
+                Assert.False(tree.Children[1].Children[1].IsBlob);
+                Assert.False(tree.Children[1].Children[1].IsEnumerated);
+            }
+        }
+
+        public class Depth3 : Test
+        {
+            public Depth3(ITestOutputHelper output) : base(output)
+            {
+            }
+
+            [Fact]
+            public async Task Run()
+            {
+                await CreateBlockBlobsAsync("a1", "a2", "b1", "b2");
+
+                var tree = await Target.EnumerateLeadingCharactersAsync(
+                    Account,
+                    ContainerName,
+                    string.Empty,
+                    depth: 3);
+
+                Assert.Equal(string.Empty, tree.Prefix);
+                Assert.Equal(2, tree.Children.Count);
+                Assert.False(tree.IsBlob);
+                Assert.True(tree.IsEnumerated);
+
+                Assert.Equal("a", tree.Children[0].Prefix);
+                Assert.Equal(2, tree.Children[0].Children.Count);
+                Assert.False(tree.Children[0].IsBlob);
+                Assert.True(tree.Children[0].IsEnumerated);
+
+                Assert.Equal("b", tree.Children[1].Prefix);
+                Assert.Equal(2, tree.Children[1].Children.Count);
+                Assert.False(tree.Children[1].IsBlob);
+                Assert.True(tree.Children[1].IsEnumerated);
+
+                Assert.Equal("a1", tree.Children[0].Children[0].Prefix);
+                Assert.Empty(tree.Children[0].Children[0].Children);
+                Assert.True(tree.Children[0].Children[0].IsBlob);
+                Assert.True(tree.Children[0].Children[0].IsEnumerated);
+
+                Assert.Equal("a2", tree.Children[0].Children[1].Prefix);
+                Assert.Empty(tree.Children[0].Children[1].Children);
+                Assert.True(tree.Children[0].Children[1].IsBlob);
+                Assert.True(tree.Children[0].Children[1].IsEnumerated);
+
+                Assert.Equal("b1", tree.Children[1].Children[0].Prefix);
+                Assert.Empty(tree.Children[1].Children[0].Children);
+                Assert.True(tree.Children[1].Children[0].IsBlob);
+                Assert.True(tree.Children[1].Children[0].IsEnumerated);
+
+                Assert.Equal("b2", tree.Children[1].Children[1].Prefix);
+                Assert.Empty(tree.Children[1].Children[1].Children);
+                Assert.True(tree.Children[1].Children[1].IsBlob);
+                Assert.True(tree.Children[1].Children[1].IsEnumerated);
             }
         }
 
@@ -110,6 +247,7 @@ namespace Knapcode.BlobDelta.Test.Functional
                     depth: 1);
 
                 Assert.Equal("b", tree.Prefix);
+                Assert.True(tree.IsBlob);
                 Assert.Equal(2, tree.Children.Count);
                 Assert.Equal("ba", tree.Children[0].Prefix);
                 Assert.Equal("bb", tree.Children[1].Prefix);
@@ -137,6 +275,7 @@ namespace Knapcode.BlobDelta.Test.Functional
                     depth: 1);
 
                 Assert.Equal("e", tree.Prefix);
+                Assert.False(tree.IsBlob);
                 Assert.Equal(1, tree.Children.Count);
                 Assert.Equal("ee", tree.Children[0].Prefix);
 
@@ -163,6 +302,7 @@ namespace Knapcode.BlobDelta.Test.Functional
                     depth: 1);
 
                 Assert.Equal("cc", tree.Prefix);
+                Assert.True(tree.IsBlob);
                 Assert.Empty(tree.Children);
             }
         }

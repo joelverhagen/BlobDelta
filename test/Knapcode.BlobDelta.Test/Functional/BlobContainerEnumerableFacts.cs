@@ -261,9 +261,9 @@ namespace Knapcode.BlobDelta.Test.Functional
                 return new BlobEnumerable(
                     Container,
                     initialContinuationToken,
+                    prefix,
                     minBlobName,
                     maxBlobName,
-                    prefix,
                     pageSize);
             }
 
