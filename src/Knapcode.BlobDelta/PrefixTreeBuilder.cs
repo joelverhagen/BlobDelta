@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,11 +11,17 @@ namespace Knapcode.BlobDelta
 {
     public class PrefixTreeBuilder
     {
-        private readonly ILogger<PrefixTreeBuilder> _logger;
+        private readonly PrefixTreeBuilderConfiguration _configuration;
+        private readonly ILogger _logger;
 
-        public PrefixTreeBuilder(ILogger<PrefixTreeBuilder> logger)
+        public PrefixTreeBuilder(
+            PrefixTreeBuilderConfiguration configuration,
+            ILogger<PrefixTreeBuilder> logger)
         {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _logger = new LoggerWrapper(
+                _configuration.MinimumLogLevel,
+                logger ?? throw new ArgumentNullException(nameof(logger)));
         }
 
         public async Task<PrefixNode> EnumerateLeadingCharactersAsync(
@@ -77,6 +84,8 @@ namespace Knapcode.BlobDelta
             string containerName,
             PrefixNode node)
         {
+            _logger.LogInformation("Starting the enumeration of leading characters with '{Prefix}'.", node.Prefix);
+
             var client = account.CreateCloudBlobClient();
             var container = client.GetContainerReference(containerName);
 
@@ -165,14 +174,14 @@ namespace Knapcode.BlobDelta
                         throw new NotSupportedException($"The blob type {second.GetType().FullName} is not supported.");
                     }
 
-                    _logger.LogInformation("Now using delimiter {Delimiter}", delimiter);
+                    _logger.LogDebug("Now using delimiter '{Delimiter}'", delimiter);
                     node.GetOrAddChild(delimiter, currentToken);
                 }
             }
 
             node.MarkAsEnumerated();
 
-            _logger.LogInformation("Done. Found {Count} leading characters.", node.Children.Count);
+            _logger.LogInformation("Done. Found {Count} leading characters for prefix '{Prefix}'.", node.Children.Count, node.Prefix);
         }
 
         private async Task<PrefixNode> GetInitialNodeOrNullAsync(
@@ -180,7 +189,7 @@ namespace Knapcode.BlobDelta
             CloudBlobContainer container,
             PrefixNode node)
         {
-            _logger.LogInformation("Fetching first blob name with prefix {Prefix}.", node.Prefix);
+            _logger.LogDebug("Fetching first blob name with prefix '{Prefix}'.", node.Prefix);
 
             // We fetch two results here because it's possible that there is a blob with a name exactly matching the
             // prefix. This is a special case where a node with an empty string prefix is added.
@@ -206,7 +215,7 @@ namespace Knapcode.BlobDelta
             BlobContinuationToken token;
             if (results[0].Name.Length == node.Prefix.Length)
             {
-                _logger.LogInformation("There is a blob name matching the prefix {Prefix} exactly.", node.Prefix);
+                _logger.LogDebug("There is a blob name matching the prefix {Prefix} exactly.", node.Prefix);
                 node.MarkAsBlob();
 
                 if (results.Count > 1)
@@ -226,7 +235,7 @@ namespace Knapcode.BlobDelta
                 }
                 else
                 {
-                    _logger.LogInformation("Done. There is only one blob and its name exactly matching the prefix {Prefix}.", node.Prefix);
+                    _logger.LogInformation("Done. There is only one blob and its name exactly matching the prefix '{Prefix}'.", node.Prefix);
                     return null;
                 }
             }
@@ -237,7 +246,7 @@ namespace Knapcode.BlobDelta
             }
 
             var delimiter = GetNthCharacter(firstBlobName, node.Prefix.Length);
-            _logger.LogInformation("Starting with delimiter {Delimiter}", delimiter);
+            _logger.LogDebug("Starting with delimiter '{Delimiter}'.", delimiter);
             return node.GetOrAddChild(delimiter, token);
         }
 
@@ -249,7 +258,7 @@ namespace Knapcode.BlobDelta
             BlobContinuationToken currentToken,
             int maxResults)
         {
-            _logger.LogInformation("Fetching a segment with prefix {Prefix}, delimiter {Delimiter}.", prefix, delimiter);
+            _logger.LogDebug("Fetching a segment with prefix '{Prefix}', delimiter '{Delimiter}'.", prefix, delimiter);
 
             var segment = await GetDelimitedSegmentInternalAsync(
                 account,
@@ -271,7 +280,7 @@ namespace Knapcode.BlobDelta
             string delimiter,
             BlobContinuationToken currentToken)
         {
-            _logger.LogInformation("Fetching a continuation token with {Prefix}, delimiter {Delimiter}.", prefix, delimiter);
+            _logger.LogDebug("Fetching a continuation token with '{Prefix}', delimiter '{Delimiter}'.", prefix, delimiter);
 
             var segment = await GetDelimitedSegmentInternalAsync(
                 account,
@@ -342,7 +351,7 @@ namespace Knapcode.BlobDelta
                 }
             }
 
-            _logger.LogInformation("Got a segment with {Count} results. Results: {Blobs}", blobs.Count, blobs);
+            _logger.LogDebug("Got a segment with {Count} results. Results: {Blobs}", blobs.Count, blobs);
         }
 
         /// <summary>

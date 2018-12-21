@@ -499,7 +499,9 @@ namespace Knapcode.BlobDelta.Test.Functional
             public Test(ITestOutputHelper output) : base(output)
             {
                 Logger = output.GetLogger<PrefixTreeBuilder>();
-                Target = new PrefixTreeBuilder(Logger);
+                Target = new PrefixTreeBuilder(
+                    new PrefixTreeBuilderConfiguration(),
+                    Logger);
             }
 
             public RecordingLogger<PrefixTreeBuilder> Logger { get; }
