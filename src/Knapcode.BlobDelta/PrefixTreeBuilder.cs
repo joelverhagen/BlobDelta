@@ -17,29 +17,59 @@ namespace Knapcode.BlobDelta
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        public async Task<PrefixNode> EnumerateLeadingCharacters(
+        public async Task<PrefixNode> EnumerateLeadingCharactersAsync(
             CloudStorageAccount account,
             string containerName,
-            PrefixNode parent)
-        {
-            using (_logger.BeginScope(
-                "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
-                parent.Prefix,
-                containerName,
-                account.BlobEndpoint.AbsoluteUri))
-            {
-                await PopulateNodeWithLeadingCharacters(account, containerName, parent);
-                return parent;
-            }
-        }
-
-        public async Task<PrefixNode> EnumerateLeadingCharacters(
-            CloudStorageAccount account,
-            string containerName,
-            string prefix)
+            string prefix,
+            int depth)
         {
             var node = new PrefixNode(parent: null, partialPrefix: prefix, token: null);
-            return await EnumerateLeadingCharacters(account, containerName, node);
+            await EnumerateLeadingCharactersAsync(account, containerName, node, depth);
+            return node;
+        }
+
+        public async Task<PrefixNode> EnumerateLeadingCharactersAsync(
+            CloudStorageAccount account,
+            string containerName,
+            PrefixNode parent,
+            int depth)
+        {
+            var queue = new Queue<PrefixNodeAndDepth>();
+            queue.Enqueue(new PrefixNodeAndDepth(parent, depth));
+
+            while (queue.Count > 0)
+            {
+                var prefixNodeAndDepth = queue.Dequeue();
+
+                if (prefixNodeAndDepth.Depth <= 0)
+                {
+                    continue;
+                }
+
+                if (prefixNodeAndDepth.Node.IsEnumerated)
+                {
+                    continue;
+                }
+
+                using (_logger.BeginScope(
+                    "Enumerating leading characters for prefix {Prefix} in container {ContainerName} on account {AccountUrl}.",
+                    prefixNodeAndDepth.Node.Prefix,
+                    containerName,
+                    account.BlobEndpoint.AbsoluteUri))
+                {
+                    await PopulateNodeWithLeadingCharacters(account, containerName, prefixNodeAndDepth.Node);
+                }
+
+                if (prefixNodeAndDepth.Depth > 1)
+                {
+                    foreach (var child in prefixNodeAndDepth.Node.Children)
+                    {
+                        queue.Enqueue(new PrefixNodeAndDepth(child, prefixNodeAndDepth.Depth - 1));
+                    }
+                }
+            }
+
+            return parent;
         }
 
         private async Task PopulateNodeWithLeadingCharacters(
@@ -140,6 +170,8 @@ namespace Knapcode.BlobDelta
                 }
             }
 
+            node.MarkAsEnumerated();
+
             _logger.LogInformation("Done. Found {Count} leading characters.", node.Children.Count);
         }
 
@@ -175,6 +207,7 @@ namespace Knapcode.BlobDelta
             if (results[0].Name.Length == node.Prefix.Length)
             {
                 _logger.LogInformation("There is a blob name matching the prefix {Prefix} exactly.", node.Prefix);
+                node.MarkAsBlob();
 
                 if (results.Count > 1)
                 {
@@ -429,6 +462,18 @@ namespace Knapcode.BlobDelta
             }
 
             return string.Empty;
+        }
+
+        private class PrefixNodeAndDepth
+        {
+            public PrefixNodeAndDepth(PrefixNode node, int depth)
+            {
+                Node = node;
+                Depth = depth;
+            }
+
+            public PrefixNode Node { get; }
+            public int Depth { get; }
         }
     }
 }

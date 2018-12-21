@@ -29,6 +29,9 @@ namespace Knapcode.BlobDelta
         public string PartialPrefix { get; }
         public BlobContinuationToken Token { get; }
         public string Prefix { get; }
+
+        public bool IsEnumerated { get; private set; }
+        public bool IsBlob { get; private set; }
         public IReadOnlyList<PrefixNode> Children => _children;
 
         public override string ToString()
@@ -36,9 +39,19 @@ namespace Knapcode.BlobDelta
             return Prefix;
         }
 
+        public void MarkAsEnumerated()
+        {
+            IsEnumerated = true;
+        }
+
+        public void MarkAsBlob()
+        {
+            IsBlob = true;
+        }
+
         public PrefixNode GetOrAddChild(string partialPrefix, BlobContinuationToken token)
         {
-            foreach (var existingChild in _children)
+            foreach (var existingChild in Children)
             {
                 if (existingChild.PartialPrefix == partialPrefix)
                 {
