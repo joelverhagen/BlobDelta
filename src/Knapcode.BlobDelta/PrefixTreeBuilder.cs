@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,7 +45,7 @@ namespace Knapcode.BlobDelta
         {
             var queue = new Queue<PrefixNodeAndDepth>();
             queue.Enqueue(new PrefixNodeAndDepth(parent, depth));
-            var workLock = new object();
+            var queueLock = new object();
             var inProgressCount = 0;
 
             var workerTasks = Enumerable
@@ -53,40 +54,56 @@ namespace Knapcode.BlobDelta
                 {
                     await Task.Yield();
 
+                    var shouldLogAboutWaiting = true;
                     while (true)
                     {
-                        PrefixNodeAndDepth prefixNodeAndDepth;
-                        lock (workLock)
+                        var shouldWait = false;
+                        PrefixNodeAndDepth prefixNodeAndDepth = null;
+                        lock (queueLock)
                         {
-                            while (queue.Count == 0)
+                            if (queue.Count == 0)
                             {
-                                var localInProgressCount = inProgressCount;
-                                if (localInProgressCount == 0)
+                                if (inProgressCount == 0)
                                 {
                                     _logger.LogTrace(
-                                        "[Worker {WorkerIndex}] The queue is empty and there are no other workers in progress. Terminating.",
-                                        workerIndex);
-
+                                       "[Worker {WorkerIndex}] The queue is empty and there are no other workers in progress. Terminating.",
+                                       workerIndex);
                                     return;
                                 }
+                                else
+                                {
+                                    shouldWait = true;
+                                }
+                            }
+                            else
+                            {
+                                shouldLogAboutWaiting = true;
+                                prefixNodeAndDepth = queue.Dequeue();
+                                Interlocked.Increment(ref inProgressCount);
+                            }
+                        }
 
+                        if (shouldWait)
+                        {
+                            if (shouldLogAboutWaiting)
+                            {
                                 _logger.LogTrace(
                                     "[Worker {WorkerIndex}] The queue is empty but there are {Count} other workers in progress. Waiting.",
                                     workerIndex,
-                                    localInProgressCount);
-
-                                Monitor.Wait(workLock);
+                                    inProgressCount);
+                                shouldLogAboutWaiting = false;
                             }
 
-                            Interlocked.Increment(ref inProgressCount);
-                            prefixNodeAndDepth = queue.Dequeue();
-
-                            _logger.LogTrace(
-                                "[Worker {WorkerIndex}] Starting on node '{Prefix}'.",
-                                workerIndex,
-                                prefixNodeAndDepth.Node.Prefix);
+                            await Task.Delay(TimeSpan.FromMilliseconds(250));
+                            continue;
                         }
 
+                        _logger.LogTrace(
+                            "[Worker {WorkerIndex}] Starting on node '{Prefix}'.",
+                            workerIndex,
+                            prefixNodeAndDepth.Node.Prefix);
+
+                        // Enumerate the node, if necessary.
                         if (!prefixNodeAndDepth.Node.IsEnumerated)
                         {
                             _logger.LogTrace(
@@ -111,33 +128,30 @@ namespace Knapcode.BlobDelta
                                 prefixNodeAndDepth.Node.Prefix);
                         }
 
-                        lock (workLock)
+                        lock (queueLock)
                         {
+                            // Enqueue the children, if we haven't hit our depth limit.
                             if (prefixNodeAndDepth.Depth > 1)
                             {
                                 foreach (var child in prefixNodeAndDepth.Node.Children)
                                 {
                                     queue.Enqueue(new PrefixNodeAndDepth(child, prefixNodeAndDepth.Depth - 1));
-
-                                    // There's one unit of work available for the next worker.
-                                    Monitor.Pulse(workLock);
                                 }
+
+                                _logger.LogTrace(
+                                    "[Worker {WorkerIndex}] Enqueued {Count} children from '{Prefix}'.",
+                                    workerIndex,
+                                    prefixNodeAndDepth.Node.Children.Count,
+                                    prefixNodeAndDepth.Node.Prefix);
                             }
 
-                            var localInProgressCount = Interlocked.Decrement(ref inProgressCount);
-
+                            Interlocked.Decrement(ref inProgressCount);
                             _logger.LogTrace(
-                                "[Worker {WorkerIndex}] Node '{Prefix}' is complete. Enqueued {ChildrenCount} children. There are {InProgressCount} other workers in progress.",
+                                "[Worker {WorkerIndex}] Node '{Prefix}' is complete. There are {InProgressCount} other workers in progress.",
                                 workerIndex,
                                 prefixNodeAndDepth.Node.Prefix,
                                 prefixNodeAndDepth.Node.Children.Count,
-                                localInProgressCount);
-                            
-                            if (queue.Count == 0 && localInProgressCount == 0)
-                            {
-                                // We're done. Signal all workers to stop waiting so that they can terminate.
-                                Monitor.PulseAll(workLock);
-                            }
+                                inProgressCount);
                         }
                     }
                 })
@@ -232,11 +246,11 @@ namespace Knapcode.BlobDelta
                     var second = results[1];
                     if (second is ICloudBlob nextBlob)
                     {
-                        delimiter = GetNthCharacter(nextBlob.Name, node.Prefix.Length);
+                        delimiter = StringUtility.GetNthCharacter(nextBlob.Name, node.Prefix.Length);
                     }
                     else if (second is CloudBlobDirectory nextDirectory)
                     {
-                        delimiter = GetNthCharacter(nextDirectory.Prefix, node.Prefix.Length);
+                        delimiter = StringUtility.GetNthCharacter(nextDirectory.Prefix, node.Prefix.Length);
                     }
                     else
                     {
@@ -314,7 +328,7 @@ namespace Knapcode.BlobDelta
                 token = null;
             }
 
-            var delimiter = GetNthCharacter(firstBlobName, node.Prefix.Length);
+            var delimiter = StringUtility.GetNthCharacter(firstBlobName, node.Prefix.Length);
             _logger.LogDebug("Starting with delimiter '{Delimiter}'.", delimiter);
             return node.GetOrAddChild(delimiter, token);
         }
@@ -386,18 +400,6 @@ namespace Knapcode.BlobDelta
                 operationContext: null);
         }
 
-        private static string GetNthCharacter(string input, int index)
-        {
-            if (char.IsSurrogatePair(input, index))
-            {
-                return input.Substring(index, 2);
-            }
-            else
-            {
-                return input.Substring(index, 1);
-            }
-        }
-
         private void LogSegment(
             string prefix,
             string delimiter,
@@ -421,125 +423,6 @@ namespace Knapcode.BlobDelta
             }
 
             _logger.LogDebug("Got a segment with {Count} results. Results: {Blobs}", blobs.Count, blobs);
-        }
-
-        /// <summary>
-        /// Note: this is currently unused. It was written in an attempted, more clever, prefix tree builder.
-        /// </summary>
-        private static string GetLastUnsharedPrefix(IReadOnlyList<string> input, int startIndex)
-        {
-            if (input == null)
-            {
-                throw new ArgumentNullException(nameof(input));
-            }
-
-            if (input.Count == 0)
-            {
-                throw new ArgumentException("There must be at least one string in the input list.", nameof(input));
-            }
-
-            // Verify the list is sorted and unique.
-            for (var i = 1; i < input.Count; i++)
-            {
-                if (string.CompareOrdinal(input[i - 1], input[i]) >= 0)
-                {
-                    throw new ArgumentException("The list must have unique items and must be sorted ordinally, ascending.", nameof(input));
-                }
-            }
-
-            var last = input.Last();
-
-            // Verify the characters before the start index are the same and that the start index is valid.
-            for (var otherIndex = 0; otherIndex < input.Count - 1; otherIndex++)
-            {
-                var other = input[otherIndex];
-                if (startIndex >= other.Length)
-                {
-                    throw new ArgumentException("The start index must be valid for all input strings.", nameof(input));
-                }
-
-                for (var i = 0; i < startIndex; i++)
-                {
-                    if (other[i] != last[i])
-                    {
-                        throw new ArgumentException("All of the characters up to the start index must be the same in all strings.", nameof(input));
-                    }
-                }
-            }
-
-            for (var i = startIndex; i < last.Length; i++)
-            {
-                var allMatching = true;
-                string other = null;
-                for (var otherIndex = input.Count - 2; otherIndex >= 0; otherIndex--)
-                {
-                    other = input[otherIndex];
-
-                    // TODO: handle i being out of bounds in other
-                    if (last[i] != other[i])
-                    {
-                        allMatching = false;
-                        break;
-                    }
-                }
-
-                if (!allMatching)
-                {
-                    return other.Substring(startIndex, (i - startIndex) + 1);
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Note: this is currently unused. It was written in an attempted, more clever, prefix tree builder.
-        /// </summary>
-        private static string GetLongestSharedPrefix(IReadOnlyList<string> input, int startIndex)
-        {
-            if (input == null)
-            {
-                throw new ArgumentNullException(nameof(input));
-            }
-
-            if (input.Count == 0)
-            {
-                throw new ArgumentException("There must be at least one string in the input list.", nameof(input));
-            }
-
-            var first = input[0];
-            if (input.Count == 1)
-            {
-                return first;
-            }
-
-            for (var candidateLength = input[0].Length; candidateLength > startIndex; candidateLength--)
-            {
-                var allMatching = true;
-                for (var otherIndex = 1; otherIndex < input.Count; otherIndex++)
-                {
-                    if (string.CompareOrdinal(first, startIndex, input[otherIndex], startIndex, candidateLength - startIndex) != 0)
-                    {
-                        allMatching = false;
-                        break;
-                    }
-                }
-
-                if (allMatching)
-                {
-                    // Don't split surrogate pairs.
-                    if (char.IsHighSurrogate(first[candidateLength - 1]))
-                    {
-                        return first.Substring(startIndex, (candidateLength - startIndex) - 1);
-                    }
-                    else
-                    {
-                        return first.Substring(startIndex, candidateLength - startIndex);
-                    }
-                }
-            }
-
-            return string.Empty;
         }
 
         private class PrefixNodeAndDepth
