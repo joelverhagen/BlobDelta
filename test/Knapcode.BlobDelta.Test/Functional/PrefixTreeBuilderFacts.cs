@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Knapcode.BlobDelta.Test.Support;
 using Microsoft.Extensions.Logging;
@@ -411,6 +412,15 @@ namespace Knapcode.BlobDelta.Test.Functional
             [Fact]
             public async Task Run()
             {
+                var timeoutTask = Task.Delay(TimeSpan.FromSeconds(60));
+                var testLogicTask = TestLogic();
+                Assert.NotEqual(timeoutTask, await Task.WhenAny(timeoutTask, testLogicTask));
+            }
+
+            private async Task TestLogic()
+            {
+                await Task.Yield();
+
                 Configuration = new PrefixTreeBuilderConfiguration(8, LogLevel.Trace);
                 Target = new PrefixTreeBuilder(Configuration, Logger);
                 await CreateBlockBlobsAsync("AAA", "AAAA", "AAAB", "AAB", "AAC", "ABA", "ABC", "BAA", "BCC", "CAA", "CB", "D");
@@ -501,7 +511,7 @@ namespace Knapcode.BlobDelta.Test.Functional
         {
             public Test(ITestOutputHelper output) : base(output)
             {
-                Configuration = new PrefixTreeBuilderConfiguration();
+                Configuration = new PrefixTreeBuilderConfiguration(workerCount: 1, minimumLogLevel: LogLevel.Trace);
                 Logger = output.GetLogger<PrefixTreeBuilder>();
                 Target = new PrefixTreeBuilder(Configuration, Logger);
             }

@@ -66,6 +66,7 @@ namespace Knapcode.BlobDelta
                                     _logger.LogTrace(
                                         "[Worker {WorkerIndex}] The queue is empty and there are no other workers in progress. Terminating.",
                                         workerIndex);
+
                                     return;
                                 }
 
@@ -73,11 +74,13 @@ namespace Knapcode.BlobDelta
                                     "[Worker {WorkerIndex}] The queue is empty but there are {Count} other workers in progress. Waiting.",
                                     workerIndex,
                                     localInProgressCount);
+
                                 Monitor.Wait(workLock);
                             }
 
                             Interlocked.Increment(ref inProgressCount);
                             prefixNodeAndDepth = queue.Dequeue();
+
                             _logger.LogTrace(
                                 "[Worker {WorkerIndex}] Starting on node '{Prefix}'.",
                                 workerIndex,
@@ -122,6 +125,7 @@ namespace Knapcode.BlobDelta
                             }
 
                             var localInProgressCount = Interlocked.Decrement(ref inProgressCount);
+
                             _logger.LogTrace(
                                 "[Worker {WorkerIndex}] Node '{Prefix}' is complete. Enqueued {ChildrenCount} children. There are {InProgressCount} other workers in progress.",
                                 workerIndex,
