@@ -51,13 +51,16 @@ namespace Knapcode.BlobDelta
         {
             while (true)
             {
-                try
+                if (!await _waitSemaphore.WaitAsync(TimeSpan.Zero))
                 {
-                    await _waitSemaphore.WaitAsync(_isCompleteCts.Token);
-                }
-                catch (OperationCanceledException)
-                {
-                    return new DequeueResult<T>(default(T), hasItem: false);
+                    try
+                    {
+                        await _waitSemaphore.WaitAsync(_isCompleteCts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return new DequeueResult<T>(default(T), hasItem: false);
+                    }
                 }
 
                 if (_queue.TryDequeue(out var item))
