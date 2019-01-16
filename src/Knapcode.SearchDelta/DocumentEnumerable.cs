@@ -8,7 +8,7 @@ using Microsoft.Azure.Search.Models;
 
 namespace Knapcode.SearchDelta
 {
-    public class SearchDocumentEnumerable : IAsyncEnumerable<DocumentContext>
+    public class DocumentEnumerable : IAsyncEnumerable<DocumentContext>
     {
         private const int MaxPageSize = 1000;
 
@@ -18,7 +18,7 @@ namespace Knapcode.SearchDelta
         private readonly string _maxKey;
         private readonly int _pageSize;
 
-        public SearchDocumentEnumerable(
+        public DocumentEnumerable(
             ISearchIndexClient index,
             string keyName) : this(
                 index,
@@ -29,7 +29,7 @@ namespace Knapcode.SearchDelta
         {
         }
 
-        public SearchDocumentEnumerable(
+        public DocumentEnumerable(
             ISearchIndexClient index,
             string keyName,
             string minKey,
@@ -43,7 +43,7 @@ namespace Knapcode.SearchDelta
             _pageSize = pageSize;
         }
 
-        public static async Task<SearchDocumentEnumerable> CreateAsync(
+        public static async Task<DocumentEnumerable> CreateAsync(
             ISearchServiceClient client,
             string indexName)
         {
@@ -55,7 +55,7 @@ namespace Knapcode.SearchDelta
                 pageSize: MaxPageSize);
         }
 
-        public static async Task<SearchDocumentEnumerable> CreateAsync(
+        public static async Task<DocumentEnumerable> CreateAsync(
             ISearchServiceClient client,
             string indexName,
             string minKey,
@@ -67,17 +67,19 @@ namespace Knapcode.SearchDelta
 
             if (!keyField.IsSortable)
             {
-                throw new InvalidOperationException(
-                    $"The key field '{keyField.Name}' of index '{indexName}' must be sortable.");
+                throw new ArgumentException(
+                    $"The key field '{keyField.Name}' of index '{indexName}' must be sortable.",
+                    nameof(indexName));
             }
 
             if (!keyField.IsFilterable)
             {
-                throw new InvalidOperationException(
-                    $"The key field '{keyField.Name}' of index '{indexName}' must be filterable.");
+                throw new ArgumentException(
+                    $"The key field '{keyField.Name}' of index '{indexName}' must be filterable.",
+                    nameof(indexName));
             }
 
-            return new SearchDocumentEnumerable(
+            return new DocumentEnumerable(
                 client.Indexes.GetClient(indexName),
                 keyField.Name,
                 minKey,
@@ -87,7 +89,7 @@ namespace Knapcode.SearchDelta
 
         public IAsyncEnumerator<DocumentContext> GetEnumerator()
         {
-            return new SearchDocumentEnumerator(
+            return new DocumentEnumerator(
                 _index,
                 _keyName,
                 _minKey,
@@ -95,7 +97,7 @@ namespace Knapcode.SearchDelta
                 _pageSize);
         }
 
-        private class SearchDocumentEnumerator : IAsyncEnumerator<DocumentContext>
+        private class DocumentEnumerator : IAsyncEnumerator<DocumentContext>
         {
             private readonly ISearchIndexClient _index;
             private readonly string _keyName;
@@ -111,7 +113,7 @@ namespace Knapcode.SearchDelta
             private int _currentDocumentIndex;
             private Document _currentDocument;
 
-            public SearchDocumentEnumerator(
+            public DocumentEnumerator(
                 ISearchIndexClient index,
                 string keyName,
                 string minKey,

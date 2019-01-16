@@ -9,9 +9,9 @@ using Xunit.Abstractions;
 
 namespace Knapcode.SearchDelta.Test.Functional
 {
-    public class SearchDocumentEnumerableFacts : BaseSearchServiceFacts
+    public class DocumentEnumerableFacts : BaseSearchServiceFacts
     {
-        public SearchDocumentEnumerableFacts(ITestOutputHelper output) : base(output)
+        public DocumentEnumerableFacts(ITestOutputHelper output) : base(output)
         {
         }
 
@@ -19,7 +19,7 @@ namespace Knapcode.SearchDelta.Test.Functional
         public async Task AllowsEmptyIndex()
         {
             await CreateIndexAsync<KeyedDocument>();
-            var enumerable = await SearchDocumentEnumerable.CreateAsync(
+            var enumerable = await DocumentEnumerable.CreateAsync(
                 ServiceClient,
                 IndexName);
 
@@ -33,7 +33,7 @@ namespace Knapcode.SearchDelta.Test.Functional
         {
             var keys = new[] { "A", "B", "C", "D", "E" };
             await CreateIndexAsync(GetKeyedDocuments(keys));
-            var enumerable = await SearchDocumentEnumerable.CreateAsync(
+            var enumerable = await DocumentEnumerable.CreateAsync(
                 ServiceClient,
                 IndexName);
 
@@ -52,7 +52,7 @@ namespace Knapcode.SearchDelta.Test.Functional
         {
             var keys = new[] { "A", "B", "C", "D", "E" };
             await CreateIndexAsync(GetKeyedDocuments(keys));
-            var enumerable = await SearchDocumentEnumerable.CreateAsync(
+            var enumerable = await DocumentEnumerable.CreateAsync(
                 ServiceClient,
                 IndexName,
                 minKey: null,
@@ -73,7 +73,7 @@ namespace Knapcode.SearchDelta.Test.Functional
         {
             var keys = new[] { "A", "B", "C", "D", "E" };
             await CreateIndexAsync(GetKeyedDocuments(keys));
-            var enumerable = await SearchDocumentEnumerable.CreateAsync(
+            var enumerable = await DocumentEnumerable.CreateAsync(
                 ServiceClient,
                 IndexName,
                 minKey: minKey,
@@ -95,7 +95,7 @@ namespace Knapcode.SearchDelta.Test.Functional
         {
             var keys = new[] { "A", "B", "C", "D", "E" };
             await CreateIndexAsync(GetKeyedDocuments(keys));
-            var enumerable = await SearchDocumentEnumerable.CreateAsync(
+            var enumerable = await DocumentEnumerable.CreateAsync(
                 ServiceClient,
                 IndexName,
                 minKey: null,
@@ -114,7 +114,7 @@ namespace Knapcode.SearchDelta.Test.Functional
             await CreateIndexAsync<NonSortableKey>();
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => SearchDocumentEnumerable.CreateAsync(ServiceClient, IndexName));
+                () => DocumentEnumerable.CreateAsync(ServiceClient, IndexName));
             Assert.Equal(
                 $"The key field 'Key' of index '{IndexName}' must be sortable.",
                 ex.Message);
@@ -126,7 +126,7 @@ namespace Knapcode.SearchDelta.Test.Functional
             await CreateIndexAsync<NonFilterableKey>();
 
             var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => SearchDocumentEnumerable.CreateAsync(ServiceClient, IndexName));
+                () => DocumentEnumerable.CreateAsync(ServiceClient, IndexName));
             Assert.Equal(
                 $"The key field 'Key' of index '{IndexName}' must be filterable.",
                 ex.Message);
