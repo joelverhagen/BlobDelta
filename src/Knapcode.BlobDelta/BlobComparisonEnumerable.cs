@@ -1,4 +1,5 @@
 ﻿using System;
+using Knapcode.Delta.Common;
 using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Knapcode.BlobDelta

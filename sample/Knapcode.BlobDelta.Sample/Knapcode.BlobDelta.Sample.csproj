@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Knapcode.BlobDelta\Knapcode.BlobDelta.csproj" />
+    <ProjectReference Include="..\..\src\Knapcode.BlobDelta\Knapcode.BlobDelta.csproj" />
   </ItemGroup>
 
 </Project>

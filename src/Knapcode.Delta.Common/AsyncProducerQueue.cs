@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Knapcode.BlobDelta
+namespace Knapcode.Delta.Common
 {
     public delegate Task<IEnumerable<T>> ProduceItemsAsync<T>(T item);
 

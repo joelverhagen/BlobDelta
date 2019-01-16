@@ -1,6 +1,6 @@
 ﻿using System.Threading.Tasks;
 
-namespace Knapcode.BlobDelta
+namespace Knapcode.Delta.Common
 {
     public interface IAsyncEnumerator<T>
     {

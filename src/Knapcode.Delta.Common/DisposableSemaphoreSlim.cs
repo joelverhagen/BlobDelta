@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Knapcode.BlobDelta
+namespace Knapcode.Delta.Common
 {
     internal class DisposableSemaphoreSlim : IDisposable
     {

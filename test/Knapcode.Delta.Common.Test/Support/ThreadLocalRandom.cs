@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading;
 
-namespace Knapcode.BlobDelta.Test.Support
+namespace Knapcode.Delta.Common.Test.Support
 {
     /// <summary>
     /// Convenience class for dealing with randomness.

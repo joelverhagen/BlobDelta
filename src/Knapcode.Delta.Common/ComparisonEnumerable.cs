@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-namespace Knapcode.BlobDelta
+namespace Knapcode.Delta.Common
 {
     public delegate TComparison Compare<TLeft, TRight, TComparison>(TLeft left, TRight right);
 

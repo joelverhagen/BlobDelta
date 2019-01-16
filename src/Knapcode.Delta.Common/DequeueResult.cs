@@ -1,4 +1,4 @@
-﻿namespace Knapcode.BlobDelta
+﻿namespace Knapcode.Delta.Common
 {
     public class DequeueResult<T>
     {

@@ -3,10 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Knapcode.BlobDelta.Test.Support;
+using Knapcode.Delta.Common.Test.Support;
 using Xunit;
 
-namespace Knapcode.BlobDelta.Test.Functional
+namespace Knapcode.Delta.Common.Test.Functional
 {
     public class AsyncProducerQueueFacts
     {

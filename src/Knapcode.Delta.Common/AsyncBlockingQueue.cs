@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Knapcode.BlobDelta
+namespace Knapcode.Delta.Common
 {
     public class AsyncBlockingQueue<T> : IDisposable
     {
