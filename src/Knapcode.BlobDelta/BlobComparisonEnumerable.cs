@@ -6,15 +6,10 @@ namespace Knapcode.BlobDelta
 {
     public class BlobComparisonEnumerable : ComparisonEnumerable<BlobContext, BlobContext, BlobComparison>
     {
-        private readonly IAsyncEnumerable<BlobContext> _left;
-        private readonly IAsyncEnumerable<BlobContext> _right;
-
         public BlobComparisonEnumerable(
             IAsyncEnumerable<BlobContext> left,
             IAsyncEnumerable<BlobContext> right) : base(left, right)
         {
-            _left = left ?? throw new ArgumentNullException(nameof(left));
-            _right = right ?? throw new ArgumentNullException(nameof(right));
         }
 
         protected override BlobComparison Compare(BlobContext left, BlobContext right)
