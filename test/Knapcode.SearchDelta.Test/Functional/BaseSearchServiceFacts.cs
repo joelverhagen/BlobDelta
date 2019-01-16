@@ -28,6 +28,7 @@ namespace Knapcode.SearchDelta.Test.Functional
             Output = output;
             ServiceName = GetServiceName();
             IndexName = GetIndexName();
+            output.WriteLine($"Using search service '{ServiceName}' and index '{IndexName}'.");
             ServiceClient = new SearchServiceClient(
                 ServiceName,
                 new SearchCredentials(GetApiKey()));
