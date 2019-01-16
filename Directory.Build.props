@@ -3,7 +3,7 @@
           Condition="exists($([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../')))" />
   <PropertyGroup>
   	<ArtifactsDirectory Condition="'$(ArtifactsDirectory)' == ''">$(MSBuildThisFileDirectory)artifacts</ArtifactsDirectory>
-  	<SolutionName Condition="'$(SolutionName)' == ''">BlobDelta</SolutionName>
+  	<SolutionName Condition="'$(SolutionName)' == ''">Delta</SolutionName>
     <_ProjectArtifactsDirectory>$(ArtifactsDirectory)\$(SolutionName)\$(MSBuildProjectName)\</_ProjectArtifactsDirectory>
     <BaseIntermediateOutputPath>$(_ProjectArtifactsDirectory)obj\</BaseIntermediateOutputPath>
     <IntermediateOutputPath>$(BaseIntermediateOutputPath)$(Configuration)\</IntermediateOutputPath>
