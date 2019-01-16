@@ -11,12 +11,7 @@ namespace Knapcode.SearchDelta
     public class DocumentEnumerable : IAsyncEnumerable<DocumentContext>
     {
         private const int MaxPageSize = 1000;
-
         private readonly ISearchIndexClient _index;
-        private readonly string _keyName;
-        private readonly string _minKey;
-        private readonly string _maxKey;
-        private readonly int _pageSize;
 
         public DocumentEnumerable(
             ISearchIndexClient index,
@@ -36,12 +31,22 @@ namespace Knapcode.SearchDelta
             string maxKey,
             int pageSize)
         {
-            _index = index;
-            _keyName = keyName;
-            _minKey = minKey;
-            _maxKey = maxKey;
-            _pageSize = pageSize;
+            if (pageSize < 1 || pageSize > MaxPageSize)
+            {
+                throw new ArgumentOutOfRangeException($"The page size must be greater than 0 and less than or equal to {MaxPageSize}.");
+            }
+
+            _index = index ?? throw new ArgumentNullException(nameof(index));
+            KeyName = keyName ?? throw new ArgumentNullException(nameof(keyName));
+            MinKey = minKey;
+            MaxKey = maxKey;
+            PageSize = pageSize;
         }
+
+        public string KeyName { get; }
+        public string MinKey { get; }
+        public string MaxKey { get; }
+        public int PageSize { get; }
 
         public static async Task<DocumentEnumerable> CreateAsync(
             ISearchServiceClient client,
@@ -62,6 +67,16 @@ namespace Knapcode.SearchDelta
             string maxKey,
             int pageSize)
         {
+            if (client == null)
+            {
+                throw new ArgumentNullException(nameof(client));
+            }
+
+            if (indexName == null)
+            {
+                throw new ArgumentNullException(nameof(indexName));
+            }
+
             var index = await client.Indexes.GetAsync(indexName);
             var keyField = index.Fields.Single(x => x.IsKey);
 
@@ -91,10 +106,10 @@ namespace Knapcode.SearchDelta
         {
             return new DocumentEnumerator(
                 _index,
-                _keyName,
-                _minKey,
-                _maxKey,
-                _pageSize);
+                KeyName,
+                MinKey,
+                MaxKey,
+                PageSize);
         }
 
         private class DocumentEnumerator : IAsyncEnumerator<DocumentContext>
@@ -187,6 +202,7 @@ namespace Knapcode.SearchDelta
                 }
 
                 Current = new DocumentContext(
+                    GetKey(_currentDocument),
                     _currentDocument,
                     _currentFilter,
                     _currentPageIndex,

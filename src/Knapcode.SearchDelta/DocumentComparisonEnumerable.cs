@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using Knapcode.Delta.Common;
-using Microsoft.Azure.Search.Models;
 
 namespace Knapcode.SearchDelta
 {
@@ -10,14 +9,10 @@ namespace Knapcode.SearchDelta
     {
         private static readonly IReadOnlyList<string> EmptyList = new List<string>();
 
-        private readonly string _keyName;
-
         public DocumentComparisonEnumerable(
             IAsyncEnumerable<DocumentContext> left,
-            IAsyncEnumerable<DocumentContext> right,
-            string keyName) : base(left, right)
+            IAsyncEnumerable<DocumentContext> right) : base(left, right)
         {
-            _keyName = keyName ?? throw new ArgumentNullException(nameof(keyName));
         }
 
         protected override DocumentComparison Compare(DocumentContext left, DocumentContext right)
@@ -37,7 +32,7 @@ namespace Knapcode.SearchDelta
                 return EmptyLists(DocumentComparisonType.MissingFromRight, left, right);
             }
 
-            var keyComparison = string.CompareOrdinal(GetKey(left.Document), GetKey(right.Document));
+            var keyComparison = string.CompareOrdinal(left.Key, right.Key);
             if (keyComparison < 0)
             {
                 return EmptyLists(DocumentComparisonType.MissingFromRight, left, right);
@@ -50,7 +45,8 @@ namespace Knapcode.SearchDelta
             var fieldsMissingFromRight = InternEmpty(left.Document.Keys.Except(right.Document.Keys));
             var fieldsMissingFromLeft = InternEmpty(right.Document.Keys.Except(left.Document.Keys));
             var sharedFields = InternEmpty(left.Document.Keys.Intersect(right.Document.Keys));
-            var fieldsWithDifferentValues = InternEmpty(sharedFields.Where(x => !left.Document[x].Equals(right.Document[x])));
+
+            var fieldsWithDifferentValues = InternEmpty(sharedFields.Where(x => !FieldEquals(left, right, x)));
 
             if (fieldsMissingFromRight.Any()
                 || fieldsMissingFromLeft.Any()
@@ -70,9 +66,21 @@ namespace Knapcode.SearchDelta
             }
         }
 
-        private string GetKey(Document document)
+        private static bool FieldEquals(DocumentContext left, DocumentContext right, string name)
         {
-            return (string)document[_keyName];
+            var leftField = left.Document[name];
+            var rightField = right.Document[name];
+
+            var leftSequence = leftField as System.Collections.IEnumerable;
+            var rightSequence = rightField as System.Collections.IEnumerable;
+            if (leftSequence != null && rightSequence != null)
+            {
+                return leftSequence.Cast<object>().SequenceEqual(rightSequence.Cast<object>());
+            }
+            else
+            {
+                return Equals(left.Document[name], right.Document[name]);
+            }
         }
 
         private static IReadOnlyList<string> InternEmpty(IEnumerable<string> input)

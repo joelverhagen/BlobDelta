@@ -1,17 +1,20 @@
-﻿using Microsoft.Azure.Search.Models;
+﻿using System;
+using Microsoft.Azure.Search.Models;
 
 namespace Knapcode.SearchDelta
 {
     public class DocumentContext
     {
-        public DocumentContext(Document document, string filter, int pageIndex, int documentIndex)
+        public DocumentContext(string key, Document document, string filter, int pageIndex, int documentIndex)
         {
-            Document = document;
+            Key = key ?? throw new ArgumentNullException(key);
+            Document = document ?? throw new ArgumentNullException(nameof(document));
             Filter = filter;
             PageIndex = pageIndex;
             DocumentIndex = documentIndex;
         }
 
+        public string Key { get; }
         public Document Document { get; }
         public string Filter { get; }
         public int PageIndex { get; }
