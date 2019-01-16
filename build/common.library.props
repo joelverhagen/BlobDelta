@@ -1,0 +1,28 @@
+<Project>
+  
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Authors>Joel Verhagen</Authors>
+    <Version Condition="'$(DeltaVersion)' != ''">$(DeltaVersion)</Version>
+    <VersionPrefix Condition="'$(DeltaVersion)' == '' and '$(DeltaVersionPrefix)' == ''">0.0.0</VersionPrefix>
+    <VersionPrefix Condition="'$(DeltaVersion)' == '' and '$(DeltaVersionPrefix)' != ''">$(DeltaVersionPrefix)</VersionPrefix>
+    <VersionSuffix Condition="'$(DeltaVersion)' == '' and '$(DeltaVersionSuffix)' == ''">local</VersionSuffix>
+    <VersionSuffix Condition="'$(DeltaVersion)' == '' and '$(DeltaVersionSuffix)' != ''">$(DeltaVersionSuffix)</VersionSuffix>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/joelverhagen/BlobDelta</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/joelverhagen/BlobDelta</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IncludeSymbols>true</IncludeSymbols>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub">
+      <Version>1.0.0-beta2-18618-05</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  
+</Project>

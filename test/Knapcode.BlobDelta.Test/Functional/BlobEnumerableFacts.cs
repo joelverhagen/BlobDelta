@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 
 namespace Knapcode.BlobDelta.Test.Functional
 {
-    public class BlobContainerEnumerableFacts
+    public class BlobEnumerableFacts
     {
         public class ImmediatelyReturnsFalseOnEmptyContainer : Test
         {

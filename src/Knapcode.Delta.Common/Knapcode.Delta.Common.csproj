@@ -1,23 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <Import Project="..\..\build\common.library.props" />
+  
   <PropertyGroup>
-    <OutputType>Library</OutputType>
     <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Authors>Joel Verhagen</Authors>
-    <Version Condition="'$(BlobDeltaVersion)' != ''">$(BlobDeltaVersion)</Version>
-    <VersionPrefix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionPrefix)' == ''">0.0.0</VersionPrefix>
-    <VersionPrefix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionPrefix)' != ''">$(BlobDeltaVersionPrefix)</VersionPrefix>
-    <VersionSuffix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionSuffix)' == ''">local</VersionSuffix>
-    <VersionSuffix Condition="'$(BlobDeltaVersion)' == '' and '$(BlobDeltaVersionSuffix)' != ''">$(BlobDeltaVersionSuffix)</VersionSuffix>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/joelverhagen/BlobDelta</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/joelverhagen/BlobDelta</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
     <Description>Common infrastructure for comparison things. Like Azure Storage blobs or Azure Search documents.</Description>
     <PackageTags>compare diff delta azure missing extra</PackageTags>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <IncludeSymbols>true</IncludeSymbols>
   </PropertyGroup>
 
 </Project>

@@ -636,7 +636,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             }
         }
 
-        public class Test : BlobContainerEnumerableFacts.Test
+        public class Test : BlobEnumerableFacts.Test
         {
             public Test(ITestOutputHelper output) : base(output)
             {

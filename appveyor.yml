@@ -1,7 +1,7 @@
 version: 0.0.0-appveyor-{build}
 image: Visual Studio 2017
 environment:
-  BlobDeltaVersion: $(APPVEYOR_BUILD_VERSION)
+  DeltaVersion: $(APPVEYOR_BUILD_VERSION)
   PackageOutputPath: $(APPVEYOR_BUILD_FOLDER)\artifacts\packages
 before_build:
 - cmd: nuget restore
