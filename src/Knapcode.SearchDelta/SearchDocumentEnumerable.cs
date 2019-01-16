@@ -67,16 +67,14 @@ namespace Knapcode.SearchDelta
 
             if (!keyField.IsSortable)
             {
-                throw new ArgumentException(
-                    $"The key field '{keyField.Name}' of index '{indexName}' must be sortable.",
-                    nameof(indexName));
+                throw new InvalidOperationException(
+                    $"The key field '{keyField.Name}' of index '{indexName}' must be sortable.");
             }
 
             if (!keyField.IsFilterable)
             {
-                throw new ArgumentException(
-                    $"The key field '{keyField.Name}' of index '{indexName}' must be filterable.",
-                    nameof(indexName));
+                throw new InvalidOperationException(
+                    $"The key field '{keyField.Name}' of index '{indexName}' must be filterable.");
             }
 
             return new SearchDocumentEnumerable(
