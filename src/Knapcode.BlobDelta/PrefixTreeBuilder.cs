@@ -31,7 +31,7 @@ namespace Knapcode.BlobDelta
             int depth)
         {
             var node = new PrefixNode(parent: null, partialPrefix: prefix, token: null);
-            await EnumerateLeadingCharactersAsync(account, containerName, node, depth);
+            await EnumerateLeadingCharactersAsync(account, containerName, node, depth).ConfigureAwait(false);
             return node;
         }
 
@@ -52,7 +52,7 @@ namespace Knapcode.BlobDelta
                         .Select(_ => queue.ExecuteAsync())
                         .ToList();
 
-                    await Task.WhenAll(workerTasks);
+                    await Task.WhenAll(workerTasks).ConfigureAwait(false);
                 }
             }
 
@@ -73,7 +73,7 @@ namespace Knapcode.BlobDelta
                     containerName,
                     account.BlobEndpoint.AbsoluteUri))
                 {
-                    await PopulateNodeWithLeadingCharactersAsync(account, containerName, item.Node);
+                    await PopulateNodeWithLeadingCharactersAsync(account, containerName, item.Node).ConfigureAwait(false);
                 }
             }
 
@@ -99,7 +99,7 @@ namespace Knapcode.BlobDelta
             var client = account.CreateCloudBlobClient();
             var container = client.GetContainerReference(containerName);
 
-            var initialNode = await GetInitialNodeOrNullAsync(account, container, node);
+            var initialNode = await GetInitialNodeOrNullAsync(account, container, node).ConfigureAwait(false);
             if (initialNode == null)
             {
                 return;
@@ -154,7 +154,7 @@ namespace Knapcode.BlobDelta
                     node.Prefix,
                     delimiter,
                     currentToken,
-                    maxResults: 2);
+                    maxResults: 2).ConfigureAwait(false);
                 var results = segment.Results.ToList();
                 resultCount = results.Count;
 
@@ -166,7 +166,7 @@ namespace Knapcode.BlobDelta
                         containerName,
                         node.Prefix,
                         delimiter,
-                        currentToken);
+                        currentToken).ConfigureAwait(false);
 
                     // Determine the next delimiter by getting the first character of the next blob name, following the
                     // prefix. The next result might be a blob, but it also might be directory.
@@ -210,7 +210,7 @@ namespace Knapcode.BlobDelta
                 maxResults: 2,
                 currentToken: null,
                 options: null,
-                operationContext: null);
+                operationContext: null).ConfigureAwait(false);
 
             LogSegment(node.Prefix, delimiter: null, segment: segment);
 
@@ -240,7 +240,7 @@ namespace Knapcode.BlobDelta
                         maxResults: 1,
                         currentToken: null,
                         options: null,
-                        operationContext: null);
+                        operationContext: null).ConfigureAwait(false);
                     token = segmentWithBlobMatchingSegment.ContinuationToken;
                 }
                 else
@@ -277,7 +277,7 @@ namespace Knapcode.BlobDelta
                 prefix,
                 delimiter,
                 maxResults,
-                currentToken);
+                currentToken).ConfigureAwait(false);
 
             LogSegment(prefix, delimiter, segment);
 
@@ -299,7 +299,7 @@ namespace Knapcode.BlobDelta
                 prefix,
                 delimiter,
                 maxResults: 1,
-                currentToken: currentToken);
+                currentToken: currentToken).ConfigureAwait(false);
 
             LogSegment(prefix, delimiter, segment);
 
@@ -325,7 +325,7 @@ namespace Knapcode.BlobDelta
                 maxResults: maxResults,
                 currentToken: currentToken,
                 options: null,
-                operationContext: null);
+                operationContext: null).ConfigureAwait(false);
         }
 
         private void LogSegment(

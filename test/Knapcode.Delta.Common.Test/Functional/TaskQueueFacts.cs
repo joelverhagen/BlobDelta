@@ -143,6 +143,67 @@ namespace Knapcode.Delta.Common.Test.Functional
             Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, waitDuration.Subtract(TimeSpan.FromTicks(1)));
         }
 
+        [Fact]
+        public async Task ConsumerExceptionCancelsProducer()
+        {
+            InvalidOperationException expected = null;
+            var waitDuration = TimeSpan.FromSeconds(5);
+            var consumerStarted = new TaskCompletionSource<bool>();
+            var taskQueue = new TaskQueue<int>(
+                workerCount: 1,
+                produceAsync: async (ctx, token) =>
+                {
+                    Enqueue(ctx, 1);
+                    await consumerStarted.Task;
+                    await Task.Delay(waitDuration, token);
+                    Enqueue(ctx, 10);
+                },
+                consumeAsync: (x, token) =>
+                {
+                    consumerStarted.TrySetResult(true);
+                    expected = new InvalidOperationException("Fail!");
+                    throw expected;
+                },
+                logger: _logger);
+
+            var stopwatch = Stopwatch.StartNew();
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => taskQueue.RunAsync());
+            stopwatch.Stop();
+            Assert.Same(expected, actual);
+            Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, waitDuration.Subtract(TimeSpan.FromTicks(1)));
+        }
+
+        [Fact]
+        public async Task ProducerExceptionCancelsConsumers()
+        {
+            InvalidOperationException expected = null;
+            var waitDuration = TimeSpan.FromSeconds(5);
+            var consumerStarted = new TaskCompletionSource<bool>();
+            var taskQueue = new TaskQueue<int>(
+                workerCount: 1,
+                produceAsync: async (ctx, token) =>
+                {
+                    Enqueue(ctx, 1);
+                    await consumerStarted.Task;
+                    expected = new InvalidOperationException("Fail!");
+                    throw expected;
+                },
+                consumeAsync: async (x, token) =>
+                {
+                    consumerStarted.TrySetResult(true);
+                    await Task.Delay(waitDuration, token);
+                },
+                logger: _logger);
+
+            var stopwatch = Stopwatch.StartNew();
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => taskQueue.RunAsync());
+            stopwatch.Stop();
+            Assert.Same(expected, actual);
+            Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, waitDuration.Subtract(TimeSpan.FromTicks(1)));
+        }
+
         private static void Enqueue(TaskQueue<int>.IProducerContext ctx, int count)
         {
             foreach (var i in Enumerable.Range(0, count))

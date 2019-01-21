@@ -28,7 +28,7 @@ namespace Knapcode.Delta.Common
 
             while (true)
             {
-                var result = await _queue.TryDequeueAsync();
+                var result = await _queue.TryDequeueAsync().ConfigureAwait(false);
                 if (!result.HasItem)
                 {
                     return;
@@ -36,7 +36,7 @@ namespace Knapcode.Delta.Common
 
                 Interlocked.Increment(ref _inProgressCount);
 
-                var items = await _produceItemsAsync(result.Item);
+                var items = await _produceItemsAsync(result.Item).ConfigureAwait(false);
 
                 _queue.EnqueueRange(items);
 

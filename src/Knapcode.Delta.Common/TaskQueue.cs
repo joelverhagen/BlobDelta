@@ -34,7 +34,7 @@ namespace Knapcode.Delta.Common
                 _consumeAsync,
                 _logger))
             {
-                await execution.RunAsync();
+                await execution.RunAsync().ConfigureAwait(false);
             }
         }
 
@@ -88,14 +88,14 @@ namespace Knapcode.Delta.Common
 
                 // Wait for completion or failure, whichever happens first.
                 var failureTask = _failureTcs.Task;
-                var firstTask = await Task.WhenAny(failureTask, produceThenCompleteTask);
+                var firstTask = await Task.WhenAny(failureTask, produceThenCompleteTask).ConfigureAwait(false);
                 if (firstTask == failureTask)
                 {
-                    await await failureTask;
+                    await await failureTask.ConfigureAwait(false);
                 }
                 else
                 {
-                    await produceThenCompleteTask;
+                    await produceThenCompleteTask.ConfigureAwait(false);
                 }
             }
 
@@ -119,7 +119,7 @@ namespace Knapcode.Delta.Common
                         logged = true;
                     }
 
-                    await Task.Delay(TimeSpan.FromMilliseconds(100));
+                    await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
                 }
 
                 if (logged)
@@ -132,10 +132,26 @@ namespace Knapcode.Delta.Common
 
             private async Task ProduceThenCompleteAsync()
             {
-                await Task.Yield();
-                await _produceAsync(new ProducerContext(this), _failureCts.Token);
+                var produceTask = ProduceAsync();
+                try
+                {
+                    await produceTask.ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(0, ex, "The producer in the task queue encountered an exception.");
+                    SetFailedTask(produceTask);
+                    throw;
+                }
+
                 _queue.MarkAsComplete();
-                await Task.WhenAll(_consumers);
+                await Task.WhenAll(_consumers).ConfigureAwait(false);
+            }
+
+            private async Task ProduceAsync()
+            {
+                await Task.Yield();
+                await _produceAsync(new ProducerContext(this), _failureCts.Token).ConfigureAwait(false);
             }
 
             private void Enqueue(T item)
@@ -146,30 +162,34 @@ namespace Knapcode.Delta.Common
             private async Task ConsumeUntilCompleteAsync()
             {
                 await Task.Yield();
-
                 bool hasItem;
                 do
                 {
-                    var result = await _queue.TryDequeueAsync();
+                    var result = await _queue.TryDequeueAsync().ConfigureAwait(false);
                     hasItem = result.HasItem;
 
                     if (hasItem)
                     {
-                        var workTask = _consumeAsync(result.Item, _failureCts.Token);
+                        var consumeTask = ConsumeAsync(result);
                         try
                         {
-                            await workTask;
+                            await consumeTask.ConfigureAwait(false);
                         }
                         catch (Exception ex)
                         {
                             _logger.LogWarning(0, ex, "A worker in the task queue encountered an exception.");
-                            SetFailedTask(workTask);
+                            SetFailedTask(consumeTask);
                             throw;
                         }
                     }
-
                 }
                 while (!_failureCts.IsCancellationRequested && hasItem);
+            }
+
+            private async Task ConsumeAsync(DequeueResult<T> result)
+            {
+                await Task.Yield();
+                await _consumeAsync(result.Item, _failureCts.Token).ConfigureAwait(false);
             }
 
             private void SetFailedTask(Task task)
@@ -194,7 +214,7 @@ namespace Knapcode.Delta.Common
 
                 public async Task WaitForCountToBeLessThanAsync(int lessThan)
                 {
-                    await _execution.WaitForCountToBeLessThanAsync(lessThan);
+                    await _execution.WaitForCountToBeLessThanAsync(lessThan).ConfigureAwait(false);
                 }
             }
         }

@@ -51,11 +51,11 @@ namespace Knapcode.Delta.Common
         {
             while (true)
             {
-                if (!await _waitSemaphore.WaitAsync(TimeSpan.Zero))
+                if (!await _waitSemaphore.WaitAsync(TimeSpan.Zero).ConfigureAwait(false))
                 {
                     try
                     {
-                        await _waitSemaphore.WaitAsync(_isCompleteCts.Token);
+                        await _waitSemaphore.WaitAsync(_isCompleteCts.Token).ConfigureAwait(false);
                     }
                     catch (OperationCanceledException)
                     {

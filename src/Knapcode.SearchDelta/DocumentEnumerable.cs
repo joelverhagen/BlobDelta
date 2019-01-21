@@ -57,7 +57,7 @@ namespace Knapcode.SearchDelta
                 indexName,
                 minKey: null,
                 maxKey: null,
-                pageSize: MaxPageSize);
+                pageSize: MaxPageSize).ConfigureAwait(false);
         }
 
         public static async Task<DocumentEnumerable> CreateAsync(
@@ -77,7 +77,7 @@ namespace Knapcode.SearchDelta
                 throw new ArgumentNullException(nameof(indexName));
             }
 
-            var index = await client.Indexes.GetAsync(indexName);
+            var index = await client.Indexes.GetAsync(indexName).ConfigureAwait(false);
             var keyField = index.Fields.Single(x => x.IsKey);
 
             if (!keyField.IsSortable)
@@ -170,7 +170,7 @@ namespace Knapcode.SearchDelta
                                 Filter = _currentFilter,
                                 Skip = 0,
                                 Top = _pageSize,
-                            });
+                            }).ConfigureAwait(false);
 
                         _currentEnumerator = _currentPage.Results.GetEnumerator();
                         _currentPageIndex++;

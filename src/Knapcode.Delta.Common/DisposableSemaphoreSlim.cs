@@ -22,7 +22,7 @@ namespace Knapcode.Delta.Common
             bool acquired = false;
             try
             {
-                await semaphoreSlim.WaitAsync();
+                await semaphoreSlim.WaitAsync().ConfigureAwait(false);
                 acquired = true;
                 return new DisposableSemaphoreSlim(semaphoreSlim);
             }

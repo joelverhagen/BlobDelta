@@ -133,7 +133,7 @@ namespace Knapcode.BlobDelta
                 bool hasCurrent;
                 do
                 {
-                    hasCurrent = await MoveNextInternalAsync();
+                    hasCurrent = await MoveNextInternalAsync().ConfigureAwait(false);
                 }
                 while (hasCurrent && _minBlobName != null && _currentBlob.Name.CompareTo(_minBlobName) < 0);
 
@@ -170,7 +170,7 @@ namespace Knapcode.BlobDelta
                             maxResults: _pageSize,
                             currentToken: _currentToken,
                             options: null,
-                            operationContext: null);
+                            operationContext: null).ConfigureAwait(false);
                         _currentEnumerator = _currentSegment.Results.GetEnumerator();
                         _currentSegmentIndex++;
                         _currentBlobIndex = -1;

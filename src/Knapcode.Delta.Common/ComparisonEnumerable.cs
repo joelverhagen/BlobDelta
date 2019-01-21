@@ -59,7 +59,7 @@ namespace Knapcode.Delta.Common
             {
                 if (!_hasFirst)
                 {
-                    await MoveBothNextAsync();
+                    await MoveBothNextAsync().ConfigureAwait(false);
                     _hasFirst = true;
                 }
 
@@ -74,15 +74,15 @@ namespace Knapcode.Delta.Common
                 var comparison = _compare(left, right);
                 if (comparison.IsMissingFromLeft)
                 {
-                    await MoveRightNextAsync();
+                    await MoveRightNextAsync().ConfigureAwait(false);
                 }
                 else if (comparison.IsMissingFromRight)
                 {
-                    await MoveLeftNextAsync();
+                    await MoveLeftNextAsync().ConfigureAwait(false);
                 }
                 else
                 {
-                    await MoveBothNextAsync();
+                    await MoveBothNextAsync().ConfigureAwait(false);
                 }
 
                 Current = comparison;
@@ -93,14 +93,14 @@ namespace Knapcode.Delta.Common
             {
                 var moveLeftNext = MoveLeftNextAsync();
                 var moveRightNext = MoveRightNextAsync();
-                await moveLeftNext;
-                await moveRightNext;
+                await moveLeftNext.ConfigureAwait(false);
+                await moveRightNext.ConfigureAwait(false);
             }
 
             private async Task MoveLeftNextAsync()
             {
                 await Task.Yield();
-                if (!await _left.MoveNextAsync())
+                if (!await _left.MoveNextAsync().ConfigureAwait(false))
                 {
                     _completedLeft = true;
                 }
@@ -109,7 +109,7 @@ namespace Knapcode.Delta.Common
             private async Task MoveRightNextAsync()
             {
                 await Task.Yield();
-                if (!await _right.MoveNextAsync())
+                if (!await _right.MoveNextAsync().ConfigureAwait(false))
                 {
                     _completedRight = true;
                 }
