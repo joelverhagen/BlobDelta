@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
-namespace Knapcode.BlobDelta.Test.Support
+namespace Knapcode.Delta.Common.Test.Support
 {
     /// <summary>
     /// Source: https://github.com/NuGet/NuGet.Services.Metadata/blob/edde4ec5032fccb05446e79f666d30c1a0cd900e/tests/NuGet.Services.AzureSearch.Tests/Support/RecordingLogger.cs

@@ -1,4 +1,4 @@
-﻿using Knapcode.BlobDelta.Test.Support;
+﻿using Knapcode.Delta.Common.Test.Support;
 using Microsoft.Extensions.Logging;
 
 namespace Xunit.Abstractions
