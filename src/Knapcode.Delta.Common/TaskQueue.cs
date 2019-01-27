@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 using Microsoft.Extensions.Logging;
 
 namespace Knapcode.Delta.Common
@@ -10,9 +9,24 @@ namespace Knapcode.Delta.Common
     public class TaskQueue<T>
     {
         private readonly int _workerCount;
+        private readonly int _maxQueueSize;
         private readonly ProduceAsync _produceAsync;
         private readonly ConsumeAsync _consumeAsync;
         private readonly ILogger _logger;
+
+        public TaskQueue(
+            int workerCount,
+            int maxQueueSize,
+            ProduceAsync produceAsync,
+            ConsumeAsync consumeAsync,
+            ILogger logger)
+        {
+            _workerCount = workerCount;
+            _maxQueueSize = maxQueueSize;
+            _produceAsync = produceAsync;
+            _consumeAsync = consumeAsync;
+            _logger = logger;
+        }
 
         public TaskQueue(
             int workerCount,
@@ -21,6 +35,7 @@ namespace Knapcode.Delta.Common
             ILogger logger)
         {
             _workerCount = workerCount;
+            _maxQueueSize = DataflowBlockOptions.Unbounded;
             _produceAsync = produceAsync;
             _consumeAsync = consumeAsync;
             _logger = logger;
@@ -29,192 +44,127 @@ namespace Knapcode.Delta.Common
         public async Task RunAsync()
         {
             using (var execution = new TaskQueueExecution(
-                _workerCount,
-                _produceAsync,
-                _consumeAsync,
-                _logger))
+               _workerCount,
+               _maxQueueSize,
+               _produceAsync,
+               _consumeAsync,
+               _logger))
             {
                 await execution.RunAsync().ConfigureAwait(false);
             }
         }
 
-        public delegate Task ProduceAsync(IProducerContext context, CancellationToken token);
+        public delegate Task ProduceAsync(IProducerContext<T> context, CancellationToken token);
         public delegate Task ConsumeAsync(T item, CancellationToken token);
-
-        public interface IProducerContext
-        {
-            void Enqueue(T item);
-            Task WaitForCountToBeLessThanAsync(int lessThan);
-        }
 
         private class TaskQueueExecution : IDisposable
         {
             private readonly int _workerCount;
+            private readonly int _maxQueueSize;
             private readonly ProduceAsync _produceAsync;
             private readonly ConsumeAsync _consumeAsync;
             private readonly ILogger _logger;
-
-            private readonly AsyncBlockingQueue<T> _queue;
             private readonly CancellationTokenSource _failureCts;
-            private readonly TaskCompletionSource<Task> _failureTcs;
-            private IReadOnlyList<Task> _consumers;
+            private readonly BufferBlock<T> _producer;
+            private readonly ActionBlock<T> _consumer;
+            private readonly IDisposable _disposable;
 
             public TaskQueueExecution(
                 int workerCount,
+                int maxQueueSize,
                 ProduceAsync produceAsync,
                 ConsumeAsync consumeAsync,
                 ILogger logger)
             {
                 _workerCount = workerCount;
+                _maxQueueSize = maxQueueSize;
                 _produceAsync = produceAsync;
                 _consumeAsync = consumeAsync;
                 _logger = logger;
-
-                _queue = new AsyncBlockingQueue<T>();
                 _failureCts = new CancellationTokenSource();
-                _failureTcs = new TaskCompletionSource<Task>();
+
+                _producer = new BufferBlock<T>(new DataflowBlockOptions
+                {
+                    CancellationToken = _failureCts.Token,
+                    BoundedCapacity = _maxQueueSize,
+                });
+
+                _consumer = new ActionBlock<T>(
+                    x => ConsumeAsync(x),
+                    new ExecutionDataflowBlockOptions
+                    {
+                        CancellationToken = _failureCts.Token,
+                        MaxDegreeOfParallelism = workerCount,
+                    });
+
+                _disposable = _producer.LinkTo(
+                    _consumer,
+                    new DataflowLinkOptions
+                    {
+                        PropagateCompletion = true,
+                    });
             }
 
-            public async Task RunAsync()
+            private async Task ConsumeAsync(T x)
             {
-                // Start the consumers.
-                _consumers = Enumerable
-                    .Range(0, _workerCount)
-                    .Select(x => ConsumeUntilCompleteAsync())
-                    .ToList();
-
-                // Start the producer.
-                var produceThenCompleteTask = ProduceThenCompleteAsync();
-
-                // Wait for completion or failure, whichever happens first.
-                var failureTask = _failureTcs.Task;
-                var firstTask = await Task.WhenAny(failureTask, produceThenCompleteTask).ConfigureAwait(false);
-                if (firstTask == failureTask)
+                try
                 {
-                    await await failureTask.ConfigureAwait(false);
+                    await _consumeAsync(x, _failureCts.Token).ConfigureAwait(false);
                 }
-                else
+                catch (Exception ex)
                 {
-                    await produceThenCompleteTask.ConfigureAwait(false);
+                    _logger.LogWarning(0, ex, "A consumer in the task queue encountered an exception.");
+                    _failureCts.Cancel();
+                    throw;
                 }
             }
 
             public void Dispose()
             {
-                _queue.Dispose();
+                _disposable.Dispose();
                 _failureCts.Dispose();
             }
 
-            private async Task WaitForCountToBeLessThanAsync(int lessThan)
+            public async Task RunAsync()
             {
-                var logged = false;
-                while (_queue.Count >= lessThan)
-                {
-                    if (!logged)
-                    {
-                        _logger.LogInformation(
-                            "There are {Count} units of work in the queue. Waiting till the queue size decreases below {LessThan}.",
-                            _queue.Count,
-                            lessThan);
-                        logged = true;
-                    }
+                var producerContext = new ProducerContext(_producer);
 
-                    await Task.Delay(TimeSpan.FromMilliseconds(100)).ConfigureAwait(false);
-                }
-
-                if (logged)
-                {
-                    _logger.LogInformation(
-                        "There are now {Count} batches of packages to be persisted. Proceeding with enqueueing.",
-                        _queue.Count);
-                }
+                await Task.WhenAll(
+                    ProduceThenCompleteAsync(producerContext),
+                    _producer.Completion,
+                    _consumer.Completion).ConfigureAwait(false);
             }
 
-            private async Task ProduceThenCompleteAsync()
+            private async Task ProduceThenCompleteAsync(ProducerContext producerContext)
             {
-                var produceTask = ProduceAsync();
+                await Task.Yield();
                 try
                 {
-                    await produceTask.ConfigureAwait(false);
+                    await _produceAsync(producerContext, _failureCts.Token).ConfigureAwait(false);
+                    _producer.Complete();
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(0, ex, "The producer in the task queue encountered an exception.");
-                    SetFailedTask(produceTask);
+                    _logger.LogWarning(0, ex, "A producer in the task queue encountered an exception.");
+                    _failureCts.Cancel();
                     throw;
                 }
-
-                _queue.MarkAsComplete();
-                await Task.WhenAll(_consumers).ConfigureAwait(false);
             }
 
-            private async Task ProduceAsync()
+            private class ProducerContext : IProducerContext<T>
             {
-                await Task.Yield();
-                await _produceAsync(new ProducerContext(this), _failureCts.Token).ConfigureAwait(false);
-            }
+                private readonly BufferBlock<T> _queue;
 
-            private void Enqueue(T item)
-            {
-                _queue.Enqueue(item);
-            }
-
-            private async Task ConsumeUntilCompleteAsync()
-            {
-                await Task.Yield();
-                bool hasItem;
-                do
+                public ProducerContext(BufferBlock<T> queue)
                 {
-                    var result = await _queue.TryDequeueAsync().ConfigureAwait(false);
-                    hasItem = result.HasItem;
-
-                    if (hasItem)
-                    {
-                        var consumeTask = ConsumeAsync(result);
-                        try
-                        {
-                            await consumeTask.ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(0, ex, "A worker in the task queue encountered an exception.");
-                            SetFailedTask(consumeTask);
-                            throw;
-                        }
-                    }
-                }
-                while (!_failureCts.IsCancellationRequested && hasItem);
-            }
-
-            private async Task ConsumeAsync(DequeueResult<T> result)
-            {
-                await Task.Yield();
-                await _consumeAsync(result.Item, _failureCts.Token).ConfigureAwait(false);
-            }
-
-            private void SetFailedTask(Task task)
-            {
-                _failureTcs.TrySetResult(task);
-                _failureCts.Cancel();
-            }
-
-            private class ProducerContext : IProducerContext
-            {
-                private readonly TaskQueueExecution _execution;
-
-                public ProducerContext(TaskQueueExecution execution)
-                {
-                    _execution = execution;
+                    _queue = queue;
                 }
 
-                public void Enqueue(T item)
-                {
-                    _execution.Enqueue(item);
-                }
+                public int Count => _queue.Count;
 
-                public async Task WaitForCountToBeLessThanAsync(int lessThan)
+                public async Task EnqueueAsync(T item, CancellationToken token)
                 {
-                    await _execution.WaitForCountToBeLessThanAsync(lessThan).ConfigureAwait(false);
+                    await _queue.SendAsync(item, token).ConfigureAwait(false);
                 }
             }
         }

@@ -27,13 +27,12 @@ namespace Knapcode.Delta.Common.Test.Functional
 
             var taskQueue = new TaskQueue<int>(
                 workerCount: 8,
-                produceAsync: (ctx, token) =>
+                produceAsync: async (ctx, token) =>
                 {
                     foreach (var i in expected)
                     {
-                        ctx.Enqueue(i);
+                        await ctx.EnqueueAsync(i, token);
                     }
-                    return Task.CompletedTask;
                 },
                 consumeAsync: (x, token) =>
                 {
@@ -76,10 +75,9 @@ namespace Knapcode.Delta.Common.Test.Functional
             var consumeCount = 0;
             var taskQueue = new TaskQueue<int>(
                 workerCount: 1,
-                produceAsync: (ctx, token) =>
+                produceAsync: async (ctx, token) =>
                 {
-                    Enqueue(ctx, 10);
-                    return Task.CompletedTask;
+                    await EnqueueAsync(ctx, 10);
                 },
                 consumeAsync: (x, token) =>
                 {
@@ -110,10 +108,9 @@ namespace Knapcode.Delta.Common.Test.Functional
 
             var taskQueue = new TaskQueue<int>(
                 workerCount: 2,
-                produceAsync: (ctx, token) =>
+                produceAsync: async (ctx, token) =>
                 {
-                    Enqueue(ctx, 10);
-                    return Task.CompletedTask;
+                    await EnqueueAsync(ctx, 10);
                 },
                 consumeAsync: async (x, token) =>
                 {
@@ -153,10 +150,10 @@ namespace Knapcode.Delta.Common.Test.Functional
                 workerCount: 1,
                 produceAsync: async (ctx, token) =>
                 {
-                    Enqueue(ctx, 1);
+                    await EnqueueAsync(ctx, 1);
                     await consumerStarted.Task;
                     await Task.Delay(waitDuration, token);
-                    Enqueue(ctx, 10);
+                    await EnqueueAsync(ctx, 10);
                 },
                 consumeAsync: (x, token) =>
                 {
@@ -184,7 +181,7 @@ namespace Knapcode.Delta.Common.Test.Functional
                 workerCount: 1,
                 produceAsync: async (ctx, token) =>
                 {
-                    Enqueue(ctx, 1);
+                    await EnqueueAsync(ctx, 1);
                     await consumerStarted.Task;
                     expected = new InvalidOperationException("Fail!");
                     throw expected;
@@ -204,12 +201,74 @@ namespace Knapcode.Delta.Common.Test.Functional
             Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, waitDuration.Subtract(TimeSpan.FromTicks(1)));
         }
 
-        private static void Enqueue(TaskQueue<int>.IProducerContext ctx, int count)
+        [Fact]
+        public async Task AllowQueueSizeToBeLimited()
         {
-            foreach (var i in Enumerable.Range(0, count))
+            var counts = new ConcurrentQueue<int>();
+            var taskQueue = new TaskQueue<int>(
+                workerCount: 1,
+                maxQueueSize: 3,
+                produceAsync: async (ctx, token) =>
+                {
+                    for (var i = 0; i < 50; i++)
+                    {
+                        await ctx.EnqueueAsync(i, token);
+                        counts.Enqueue(ctx.Count);
+                    }
+                },
+                consumeAsync: (x, token) =>
+                {
+                    return Task.CompletedTask;
+                },
+                logger: _logger);
+
+            await taskQueue.RunAsync();
+            Assert.All(counts, x => Assert.InRange(x, 0, 3));
+        }
+
+        [Fact]
+        public async Task FailureCancelsWaitingInProducer()
+        {
+            InvalidOperationException expected = null;
+            var consumeCount = 0;
+            var taskQueue = new TaskQueue<int>(
+                workerCount: 1,
+                maxQueueSize: 3,
+                produceAsync: async (ctx, token) =>
+                {
+                    for (var i = 0; i < 50; i++)
+                    {
+                        await ctx.EnqueueAsync(i, token);
+                    }
+                },
+                consumeAsync: (x, token) =>
+                {
+                    if (Interlocked.Increment(ref consumeCount) == 10)
+                    {
+                        expected = new InvalidOperationException("Fail!");
+                        throw expected;
+                    }
+
+                    return Task.CompletedTask;
+                },
+                logger: _logger);
+
+            var actual = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => taskQueue.RunAsync());
+            Assert.Same(expected, actual);
+        }
+
+        private static async Task EnqueueAsync(IProducerContext<int> ctx, int start, int count)
+        {
+            foreach (var i in Enumerable.Range(start, count))
             {
-                ctx.Enqueue(i);
+                await ctx.EnqueueAsync(i, CancellationToken.None);
             }
+        }
+
+        private static async Task EnqueueAsync(IProducerContext<int> ctx, int count)
+        {
+            await EnqueueAsync(ctx, 0, count);
         }
     }
 }
