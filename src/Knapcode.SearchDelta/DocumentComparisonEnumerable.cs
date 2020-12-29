@@ -1,7 +1,7 @@
-﻿using System;
+﻿using Knapcode.Delta.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Knapcode.Delta.Common;
 
 namespace Knapcode.SearchDelta
 {
@@ -101,6 +101,16 @@ namespace Knapcode.SearchDelta
             DocumentContext left,
             DocumentContext right)
         {
+            if (type == DocumentComparisonType.MissingFromLeft)
+            {
+                left = null;
+            }
+
+            if (type == DocumentComparisonType.MissingFromRight)
+            {
+                right = null;
+            }
+
             return new DocumentComparison(type, left, right, EmptyList, EmptyList, EmptyList);
         }
     }

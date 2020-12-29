@@ -1,6 +1,6 @@
-﻿using System;
-using Knapcode.Delta.Common;
+﻿using Knapcode.Delta.Common;
 using Microsoft.WindowsAzure.Storage.Blob;
+using System;
 
 namespace Knapcode.BlobDelta
 {

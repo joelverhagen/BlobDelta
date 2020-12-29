@@ -1,6 +1,6 @@
-﻿using System;
+﻿using Microsoft.WindowsAzure.Storage.Blob;
+using System;
 using System.Collections.Generic;
-using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Knapcode.BlobDelta
 {
@@ -46,7 +46,7 @@ namespace Knapcode.BlobDelta
             var nodes = new Queue<PrefixNode>();
             nodes.Enqueue(this);
 
-            while(nodes.Count > 0)
+            while (nodes.Count > 0)
             {
                 var node = nodes.Dequeue();
 

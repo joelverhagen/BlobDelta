@@ -9,6 +9,6 @@
         }
 
         public T Item { get; }
-        public bool HasItem { get;  }
+        public bool HasItem { get; }
     }
 }

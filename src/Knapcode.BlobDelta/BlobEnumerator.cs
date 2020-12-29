@@ -1,8 +1,8 @@
-﻿using System;
+﻿using Knapcode.Delta.Common;
+using Microsoft.WindowsAzure.Storage.Blob;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Knapcode.Delta.Common;
-using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Knapcode.BlobDelta
 {
@@ -71,7 +71,7 @@ namespace Knapcode.BlobDelta
             var actualPageSize = pageSize ?? MaxPageSize;
             if (actualPageSize < 1 || actualPageSize > MaxPageSize)
             {
-                throw new ArgumentOutOfRangeException(nameof(pageSize), "The page size must be between 1 and 5000, inclusive.");
+                throw new ArgumentOutOfRangeException(nameof(pageSize), $"The page size must be between 1 and {MaxPageSize}, inclusive.");
             }
 
             _container = container ?? throw new ArgumentNullException(nameof(container));

@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Knapcode.Delta.Common.Test.Support;
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Knapcode.Delta.Common.Test.Support;
 using Xunit;
 using Xunit.Abstractions;
 

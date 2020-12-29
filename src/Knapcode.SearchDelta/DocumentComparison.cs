@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using Knapcode.Delta.Common;
+﻿using Knapcode.Delta.Common;
+using System.Collections.Generic;
 
 namespace Knapcode.SearchDelta
 {

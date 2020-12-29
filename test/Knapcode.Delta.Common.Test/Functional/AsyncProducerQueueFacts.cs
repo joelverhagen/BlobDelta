@@ -1,9 +1,9 @@
-﻿using System;
+﻿using Knapcode.Delta.Common.Test.Support;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Knapcode.Delta.Common.Test.Support;
 using Xunit;
 
 namespace Knapcode.Delta.Common.Test.Functional

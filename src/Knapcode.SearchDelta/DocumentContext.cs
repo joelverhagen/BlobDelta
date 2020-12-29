@@ -1,5 +1,5 @@
-﻿using System;
-using Microsoft.Azure.Search.Models;
+﻿using Microsoft.Azure.Search.Models;
+using System;
 
 namespace Knapcode.SearchDelta
 {

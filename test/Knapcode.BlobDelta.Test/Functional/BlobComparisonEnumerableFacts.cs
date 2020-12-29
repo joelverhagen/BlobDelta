@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Knapcode.BlobDelta.Test.Support;
+using Knapcode.Delta.Common.Test.Support;
+using Microsoft.WindowsAzure.Storage.Blob;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Knapcode.Delta.Common.Test.Support;
-using Microsoft.WindowsAzure.Storage.Blob;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -29,9 +30,9 @@ namespace Knapcode.BlobDelta.Test.Functional
             }
         }
 
-        public class ReturnsSamesComparisonsForEqualContainers : Test
+        public class ReturnsSameComparisonsForEqualContainers : Test
         {
-            public ReturnsSamesComparisonsForEqualContainers(ITestOutputHelper output) : base(output)
+            public ReturnsSameComparisonsForEqualContainers(ITestOutputHelper output) : base(output)
             {
             }
 
@@ -189,7 +190,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             {
             }
 
-            [Fact]
+            [NoEmulatorFact]
             public async Task Run()
             {
                 var target = Create();
@@ -211,7 +212,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             {
             }
 
-            [Fact]
+            [NoEmulatorFact]
             public async Task Run()
             {
                 var target = Create();

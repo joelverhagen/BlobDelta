@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\build\common.test.props" />
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Knapcode.TableDelta\Knapcode.TableDelta.csproj" />
+    <ProjectReference Include="..\Knapcode.Delta.Common.Test\Knapcode.Delta.Common.Test.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,9 +1,9 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
-using Knapcode.Delta.Common.Test.Support;
+﻿using Knapcode.Delta.Common.Test.Support;
 using Knapcode.SearchDelta.Test.Support;
 using Microsoft.Azure.Search;
+using System;
+using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 

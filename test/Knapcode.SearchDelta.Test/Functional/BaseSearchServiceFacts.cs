@@ -1,10 +1,9 @@
-﻿using System;
+﻿using Microsoft.Azure.Search;
+using Microsoft.Azure.Search.Models;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Net;
 using System.Threading.Tasks;
-using Microsoft.Azure.Search;
-using Microsoft.Azure.Search.Models;
 using Xunit;
 using Xunit.Abstractions;
 using Index = Microsoft.Azure.Search.Models.Index;
@@ -13,11 +12,6 @@ namespace Knapcode.SearchDelta.Test.Functional
 {
     public abstract class BaseSearchServiceFacts : IAsyncLifetime
     {
-        static BaseSearchServiceFacts()
-        {
-            ServicePointManager.DefaultConnectionLimit = 64;
-        }
-
         public ITestOutputHelper Output { get; }
         public string ServiceName { get; }
         public SearchServiceClient ServiceClient { get; }

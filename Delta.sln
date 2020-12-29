@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Knapcode.BlobDelta.Sample", "sample\Knapcode.BlobDelta.Sample\Knapcode.BlobDelta.Sample.csproj", "{375ED0FB-52B3-4DCB-A965-92270C82AAB8}"
+EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Knapcode.BlobDelta.Test", "test\Knapcode.BlobDelta.Test\Knapcode.BlobDelta.Test.csproj", "{82947017-9281-465C-9FF3-AC9857F86581}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Knapcode.BlobDelta", "src\Knapcode.BlobDelta\Knapcode.BlobDelta.csproj", "{09FC1922-B4C1-4E72-B50A-193BD6E6479E}"
@@ -18,8 +20,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{AEB044FE-A7D3-45DC-B6B5-8035F546C6C9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{8E24668A-D0A6-48C5-883D-355D0DA401D7}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Knapcode.BlobDelta.Sample", "sample\Knapcode.BlobDelta.Sample\Knapcode.BlobDelta.Sample.csproj", "{375ED0FB-52B3-4DCB-A965-92270C82AAB8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Knapcode.SearchDelta.Test", "test\Knapcode.SearchDelta.Test\Knapcode.SearchDelta.Test.csproj", "{74D3EDDF-AAD4-4DE5-A522-17E84AC2031F}"
 EndProject
@@ -38,7 +38,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{5AD4961D
 		build\common.test.props = build\common.test.props
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Knapcode.TableDelta", "src\Knapcode.TableDelta\Knapcode.TableDelta.csproj", "{AAF8AFA5-9C07-4829-A030-F09FCD3D414F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Knapcode.TableDelta", "src\Knapcode.TableDelta\Knapcode.TableDelta.csproj", "{AAF8AFA5-9C07-4829-A030-F09FCD3D414F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Knapcode.TableDelta.Test", "test\Knapcode.TableDelta.Test\Knapcode.TableDelta.Test.csproj", "{67B78646-21B4-48F6-AC66-DE59EC2B5F77}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -78,6 +80,10 @@ Global
 		{AAF8AFA5-9C07-4829-A030-F09FCD3D414F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AAF8AFA5-9C07-4829-A030-F09FCD3D414F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AAF8AFA5-9C07-4829-A030-F09FCD3D414F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67B78646-21B4-48F6-AC66-DE59EC2B5F77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67B78646-21B4-48F6-AC66-DE59EC2B5F77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67B78646-21B4-48F6-AC66-DE59EC2B5F77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67B78646-21B4-48F6-AC66-DE59EC2B5F77}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -91,6 +97,7 @@ Global
 		{375ED0FB-52B3-4DCB-A965-92270C82AAB8} = {8E24668A-D0A6-48C5-883D-355D0DA401D7}
 		{74D3EDDF-AAD4-4DE5-A522-17E84AC2031F} = {AEB044FE-A7D3-45DC-B6B5-8035F546C6C9}
 		{AAF8AFA5-9C07-4829-A030-F09FCD3D414F} = {310843A5-9A6C-4D0D-B30A-63D2359FF978}
+		{67B78646-21B4-48F6-AC66-DE59EC2B5F77} = {AEB044FE-A7D3-45DC-B6B5-8035F546C6C9}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {F34FD75A-6EFF-4E2F-9918-8E8CBEF2DB2C}

@@ -1,24 +1,18 @@
-﻿using System;
+﻿using Microsoft.WindowsAzure.Storage;
+using Microsoft.WindowsAzure.Storage.Blob;
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Blob;
 using Xunit.Abstractions;
 
 namespace Knapcode.BlobDelta.Test.Functional
 {
     public abstract class BaseBlobStorageFacts
     {
-        static BaseBlobStorageFacts()
-        {
-            ServicePointManager.DefaultConnectionLimit = 64;
-        }
-
         public ITestOutputHelper Output { get; }
         public string ConnectionString { get; }
         public CloudStorageAccount Account { get; }
@@ -40,7 +34,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             return $"{ContainerNamePrefix}{Guid.NewGuid():N}";
         }
 
-        private static string GetConnectionString()
+        public static string GetConnectionString()
         {
             var connectionString = Environment.GetEnvironmentVariable("BLOBDELTA_STORAGE_CONNECTION_STRING");
 
@@ -118,7 +112,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             {
             }
 
-            public NonSeekableMemoryStream(byte[] buffer): base(buffer)
+            public NonSeekableMemoryStream(byte[] buffer) : base(buffer)
             {
             }
 

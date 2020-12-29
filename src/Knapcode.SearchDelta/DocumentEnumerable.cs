@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Knapcode.Delta.Common;
+using Microsoft.Azure.Search;
+using Microsoft.Azure.Search.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Knapcode.Delta.Common;
-using Microsoft.Azure.Search;
-using Microsoft.Azure.Search.Models;
 
 namespace Knapcode.SearchDelta
 {

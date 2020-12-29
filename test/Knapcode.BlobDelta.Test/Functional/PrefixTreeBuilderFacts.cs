@@ -1,8 +1,8 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using Knapcode.BlobDelta.Test.Support;
+﻿using Knapcode.BlobDelta.Test.Support;
 using Knapcode.Delta.Common.Test.Support;
 using Microsoft.WindowsAzure.Storage.Blob;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -376,7 +376,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             {
             }
 
-            [Fact]
+            [NoEmulatorFact]
             public async Task Run()
             {
                 await CreateBlockBlobsAsync("a", "ba", "b¥", "b♾a", "b惡aa", "c");
@@ -407,7 +407,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             {
             }
 
-            [Fact]
+            [NoEmulatorFact]
             public async Task Run()
             {
                 await CreateBlockBlobsAsync("a", "ba", "b¥", "b𐐷a", "b😃", "b𤭢aa", "c");
@@ -440,7 +440,7 @@ namespace Knapcode.BlobDelta.Test.Functional
             {
             }
 
-            [Fact]
+            [NoEmulatorFact]
             public async Task Run()
             {
                 await CreateBlockBlobsAsync("a", "c", "😃", "😃a", "😃¥", "😃𐐷a", "😃😃😃", "😃𤭢aa", "𤭢");
@@ -536,10 +536,10 @@ namespace Knapcode.BlobDelta.Test.Functional
                     nodeAAA.Children[0],
                     depth: 1);
 
-                AssertChildrenPartialPrefixes(root,    false, "A", "B", "C");
-                AssertChildrenPartialPrefixes(nodeA,   false, "A", "B");
-                AssertChildrenPartialPrefixes(nodeAA,  false, "A", "B", "C");
-                AssertChildrenPartialPrefixes(nodeAAA,  true, "A", "B");
+                AssertChildrenPartialPrefixes(root, false, "A", "B", "C");
+                AssertChildrenPartialPrefixes(nodeA, false, "A", "B");
+                AssertChildrenPartialPrefixes(nodeAA, false, "A", "B", "C");
+                AssertChildrenPartialPrefixes(nodeAAA, true, "A", "B");
                 AssertChildrenPartialPrefixes(nodeAAAA, true);
             }
         }

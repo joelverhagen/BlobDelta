@@ -1,7 +1,7 @@
-﻿using System.Threading.Tasks;
-using Knapcode.BlobDelta.Test.Support;
+﻿using Knapcode.BlobDelta.Test.Support;
 using Knapcode.Delta.Common.Test.Support;
 using Microsoft.WindowsAzure.Storage.Blob;
+using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
