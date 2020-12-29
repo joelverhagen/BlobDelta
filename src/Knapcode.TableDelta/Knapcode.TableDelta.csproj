@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\..\build\common.library.props" />
+
+  <PropertyGroup>
+    <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
+    <Description>Find the difference between two sequences of entities in Azure Table Storage</Description>
+    <PackageTags>compare diff delta table azure storage entity cosmos content missing extra</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WindowsAzure.Storage" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Knapcode.Delta.Common\Knapcode.Delta.Common.csproj" />
+  </ItemGroup>
+
+</Project>

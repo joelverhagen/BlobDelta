@@ -3,22 +3,12 @@
   <Import Project="..\..\build\common.test.props" />
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.9.0" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Knapcode.SearchDelta\Knapcode.SearchDelta.csproj" />
     <ProjectReference Include="..\Knapcode.Delta.Common.Test\Knapcode.Delta.Common.Test.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="xunit.runner.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   
 </Project>
