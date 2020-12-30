@@ -3,7 +3,8 @@
   <Import Project="..\..\build\common.library.props" />
   
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' != 'true'">netstandard1.1;net45</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' == 'true'">netstandard1.1</TargetFrameworks>
     <Description>Find the difference between two sequences of blobs on Azure Blob Storage</Description>
     <PackageTags>compare diff delta blob azure storage container hash content md5 missing extra</PackageTags>
   </PropertyGroup>

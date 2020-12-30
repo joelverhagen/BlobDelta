@@ -3,7 +3,8 @@
   <Import Project="..\..\build\common.library.props" />
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3;net45</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' != 'true'">netstandard1.3;net45</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' == 'true'">netstandard1.3</TargetFrameworks>
     <Description>Find the difference between two sequences of entities in Azure Table Storage</Description>
     <PackageTags>compare diff delta table azure storage entity cosmos content missing extra</PackageTags>
   </PropertyGroup>

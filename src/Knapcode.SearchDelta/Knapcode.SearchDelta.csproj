@@ -3,7 +3,8 @@
   <Import Project="..\..\build\common.library.props" />
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.4;net452</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' != 'true'">netstandard1.4;net452</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' == 'true'">netstandard1.4</TargetFrameworks>
     <Description>Find the difference between two sequences of documents on Azure Search</Description>
     <PackageTags>compare diff delta document azure search missing extra</PackageTags>
   </PropertyGroup>

@@ -3,7 +3,8 @@
   <Import Project="..\..\build\common.library.props" />
   
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.1;net45</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' != 'true'">netstandard1.1;net45</TargetFrameworks>
+    <TargetFrameworks Condition="'$(CoreOnly)' == 'true'">netstandard1.1</TargetFrameworks>
     <Description>Common infrastructure for comparison things. Like Azure Storage blobs or Azure Search documents.</Description>
     <PackageTags>compare diff delta azure missing extra</PackageTags>
   </PropertyGroup>
