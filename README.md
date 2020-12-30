@@ -8,6 +8,8 @@ Find the difference between two sequences of things. Currently, I've implemented
 
 Each of these is a different package.
 
+![Build](https://github.com/joelverhagen/Delta/workflows/Build/badge.svg)
+
 ## Example
 
 Here's an example where I use the Blob delta logic to compare my "staging" blob container for my blog to my "production"
