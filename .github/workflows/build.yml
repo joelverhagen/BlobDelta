@@ -1,0 +1,32 @@
+name: Build
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Build
+      run: dotnet build --no-restore
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
+      env:
+        BLOBDELTA_STORAGE_CONNECTION_STRING: ${{ secrets.BLOBDELTA_STORAGE_CONNECTION_STRING }}
+        SEARCHDELTA_API_KEY: ${{ secrets.SEARCHDELTA_API_KEY }}
+        SEARCHDELTA_INDEX_NAME: ${{ secrets.SEARCHDELTA_INDEX_NAME }} 
+        SEARCHDELTA_SERVICE_NAME: ${{ secrets.SEARCHDELTA_SERVICE_NAME }}
+        TABLEDELTA_STORAGE_CONNECTION_STRING: ${{ secrets.TABLEDELTA_STORAGE_CONNECTION_STRING }}  
